@@ -38,6 +38,7 @@ scroll = [0, 0]
 camera_speed = 170
 clicking = False
 brush_size = 1
+burn = False 
 
 # demo loop
 while True:
@@ -80,22 +81,31 @@ while True:
 
     # increment master time
     t += dt * 100
-
+    #print(burn)
     # place new tiles if clicking
-    if clicking:
-        gm.place_tile((int((mx + scroll[0]) // gm.tile_size), int((my + scroll[1]) // gm.tile_size)), int(random.random() * 12 * brush_size + 1), [0, 1, 2, 3, 5])
-        # place a 3x3 pattern of tiles if the brush is full size
-        if brush_size == 1:
-            offsets = [(-1, 0), (-1, -1), (0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1)]
-            for offset in offsets:
-                gm.place_tile((int((mx + scroll[0]) // gm.tile_size) + offset[0], int((my + scroll[1]) // gm.tile_size) + offset[1]), int(random.random() * 14 + 3), [0, 1, 2, 3, 5])
+    if  clicking:
+        if not burn: 
+            gm.place_tile((int((mx + scroll[0]) // gm.tile_size), int((my + scroll[1]) // gm.tile_size)), int(random.random() * 12 * brush_size + 1), [0, 1, 2, 3, 5])
+            # place a 3x3 pattern of tiles if the brush is full size
+            if brush_size == 1:
+                offsets = [(-1, 0), (-1, -1), (0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1)]
+                for offset in offsets:
+                    gm.place_tile((int((mx + scroll[0]) // gm.tile_size) + offset[0], int((my + scroll[1]) // gm.tile_size) + offset[1]), int(random.random() * 14 + 3), [0, 1, 2, 3, 5])
+        else: 
+            #burn the grass tiles in the clicking location
+            gm.burn_tile((int((mx + scroll[0]) // gm.tile_size), int((my + scroll[1]) // gm.tile_size)))
 
+            pass 
     # handle events
     for event in pygame.event.get():
+    
+
         if event.type == QUIT:
             pygame.quit()
             sys.exit()
         if event.type == KEYDOWN:
+            if event.key == pygame.K_b:
+                burn = not burn 
             if event.key == K_ESCAPE:
                 pygame.quit()
                 sys.exit()
@@ -103,6 +113,7 @@ while True:
                 print(clock.get_fps())
 
         if event.type == MOUSEBUTTONDOWN:
+            
             if event.button == 4:
                 brush_size = min(1, brush_size + 0.1)
             if event.button == 5:
