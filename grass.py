@@ -177,7 +177,7 @@ class GrassManager:
             tile = self.grass_tiles[pos]
             tile.render(surf, dt, offset=offset)
             if rot_function:
-                tile.set_rotation(rot_function(tile.loc[0], tile.loc[1]))
+                tile.set_rotation(rot_function(tile.loc[0], tile.loc[1]),dt)
 
 # an asset manager that contains functionality for rendering blades of grass
 class GrassAssets:
@@ -250,7 +250,7 @@ class GrassTile:
         # custom_blade_data is used when the blade's current state should not be cached. all grass tiles will try to return to a cached state
         self.custom_blade_data = None
 
-        self.update_render_data()
+        self.update_render_data(0)
 
     # apply a force that affects each blade individually based on distance instead of the rotation of the entire tile
     def apply_force(self, force_point, force_radius, force_dropoff):
@@ -274,18 +274,19 @@ class GrassTile:
 
 
     # update the identifier used to find a valid cached image
-    def update_render_data(self):
+    def update_render_data(self,dt):
+        #print(dt)
         if self.burning:
-            self.burn_life = max(0,self.burn_life- 0.0000001)
+            self.burn_life = max(0,self.burn_life - 1 * dt)
         #basically updates rotation 
         
         self.render_data = (self.base_id, self.master_rotation)
         self.true_rotation = self.inc * self.master_rotation
 
     # set new master tile rotation
-    def set_rotation(self, rotation):
+    def set_rotation(self, rotation,dt):
         self.master_rotation = rotation
-        self.update_render_data()
+        self.update_render_data(dt)
 
     # render the tile's image based on its current state and return the data
     def render_tile(self, render_shadow=False):
@@ -350,20 +351,12 @@ class GrassTile:
     def render(self, surf, dt, offset=(0, 0)):
         # render a new grass tile image if using custom uncached data otherwise use cached data if possible Also, if the tile is burning, don't use 
         # cached data. As burning is another state.
+        
+       
+        if self.custom_blade_data:
+                #if not cached, 
 
-        if self.custom_blade_data or self.burning:
-            if self.burning: 
-                #when the grass is burning, the cache musn't be used.
-
-                #shorten the blit surface.
-                short_surf = pygame.Surface((surf.get_width(),int(surf.get_height() * self.burn_life/self.max_burn_life)))
-                #short_surf.blit(self.render_tile(), (self.loc[0] - offset[0] - self.padding, self.loc[1] - offset[1] - self.padding))
-
-                surf.blit(self.render_tile(), (self.loc[0] - offset[0] - self.padding, self.loc[1] - offset[1] - self.padding))
                 
-                pass 
-            else: 
-
                 img = self.render_tile() 
                 img_mask  = pygame.mask.from_surface(img)
                 centroid = img_mask.centroid()
@@ -373,14 +366,25 @@ class GrassTile:
 
                 #mask_img = img_mask.to_surface(unsetcolor=(0,0,0,0))
                 surf.blit(self.render_tile(), (self.loc[0] - offset[0] - self.padding, self.loc[1] - offset[1] - self.padding))
+                
+                if self.burning:
+                    #if it is burning, it will have two things: the grass height is gonna decrease over time as it burns, and the outline of the grass will  shrink, and it will flicker. 
+
+                    short_surf = pygame.Surface((img.get_width(),img.get_height() * int(self.burn_life/self.max_burn_life)))
+
+                    pass 
+                """
                 #surf.blit(mask_img, (self.loc[0] - offset[0] - self.padding, self.loc[1] - offset[1] - self.padding))
                 for point in outline:
                     surf.set_at((point[0],point[1]),(255,0,255))
                 surf.set_at(center,(0,0,0))
                 #pygame.draw.lines(surf,(255,0,255),False, outline,1)
+                """
             
 
         else:
+            #if it is cached, 
+            
             # check if a new cached image needs to be generated and use the cached data if not (also cache shadow if necessary)
             if (self.render_data not in self.gm.grass_cache) and (self.gm.ground_shadow[0] and (self.base_id not in self.gm.shadow_cache)):
                 grass_img, shadow_img = self.render_tile(render_shadow=True)
@@ -393,7 +397,7 @@ class GrassTile:
             surf.blit(self.gm.grass_cache[self.render_data], (self.loc[0] - offset[0] - self.padding, self.loc[1] - offset[1] - self.padding))
 
         # attempt to move blades back to their base position
-        if self.custom_blade_data and not self.burning:
+        if self.custom_blade_data:
             matching = True
             for i, blade in enumerate(self.custom_blade_data):
                 blade[2] = normalize(blade[2], self.gm.stiffness * dt, self.blades[i][2])
@@ -402,3 +406,5 @@ class GrassTile:
             # mark the data as non-custom once in base position so the cache can be used
             if matching:
                 self.custom_blade_data = None
+
+       
