@@ -378,11 +378,31 @@ class GrassTile:
 
                     #move the outline points closer to the center of the grass img based on how much the grass has burnt. 
                     
+                    normal_vec =pygame.math.Vector2(math.cos(math.radians(self.true_rotation)),math.sin(math.radians(self.true_rotation)))
+                 
+
+                    #normal_vec = pygame.math.Vector2(math.cos(math.radians(self.true_rotation)),math.sin(math.radians(abs(self.true_rotation)))).normalize()
                     for p in img_mask.outline(every=2):
-                        dist_from_base_ratio = (mask_img.get_height() - p[1]) / (2*mask_img.get_height())
-                        burn_ratio = max(dist_from_base_ratio,self.burn_life/self.max_burn_life)
-                        move_vec = ((centroid[0] - p[0])*(1-burn_ratio), (centroid[1]- p[1])*(1-burn_ratio))
-                        outline.append((p[0] + move_vec[0],p[1] + move_vec[1]))
+                        
+                        nom = abs(math.tan(math.radians(self.true_rotation)) * p[0] - p[1] + centroid[1] - math.tan(math.radians(self.true_rotation)) * centroid[0])
+                        denom = math.sqrt(math.tan(math.radians(self.true_rotation)) * math.tan(math.radians(self.true_rotation)) + 1)
+                        dist_of_p_from_vec = nom/denom
+                        y_of_x_in_func = math.tan(math.radians(self.true_rotation)) * (p[0] - centroid[0]) + centroid[1]
+                        if y_of_x_in_func < p[1]: dir_normal_vec = False
+                        else: dir_normal_vec = True 
+                     
+                        
+                        #dist_from_base_ratio = (mask_img.get_height() - p[1]) / (2*mask_img.get_height())
+                        burn_ratio = 1 - max(0,self.burn_life/self.max_burn_life)
+
+                        mov_vec_mag = max(0.01 , burn_ratio * dist_of_p_from_vec)
+
+                        normal_vec.scale_to_length(mov_vec_mag)
+                        new_point = (p[0] + normal_vec[0] * (2*dir_normal_vec-1), p[1] + normal_vec[1] * (2*dir_normal_vec-1))
+
+                        outline.append(new_point)
+                    
+                    
 
                     #create a polygon out of those shrunk points and put it on a surf. 
                     poly_surf = pygame.Surface((img.get_width(),img.get_height()))
@@ -392,6 +412,20 @@ class GrassTile:
                     #test polygon for how it looks 
 
                     surf.blit(poly_surf,(self.loc[0] - offset[0] - self.padding, self.loc[1] - offset[1] - self.padding))
+                    
+                    #so now I need to find the overlapping part of the polygon mask, and the img mask
+                    """
+                    poly_mask = pygame.mask.from_surface(poly_surf)
+                    poly_surf = poly_mask.to_surface(unsetcolor=(0,0,0,0),setcolor=(255,255,255,255))
+                    #poly_surf.set_colorkey((255,255,255))
+
+                    final_surf = pygame.Surface(img.get_size())
+                    final_surf.blit(img,(0,0))
+                    final_surf.blit(poly_surf,(0,0))
+                    final_surf.set_colorkey((0,0,0))
+
+                    surf.blit(final_surf,(self.loc[0] - offset[0] - self.padding, self.loc[1] - offset[1] - self.padding))
+                    """
                     """
                     short_surf = pygame.Surface((img.get_width(),int(mask_img.get_height() * (self.burn_life/self.max_burn_life))))
                     short_surf.set_colorkey((0,0,0))
@@ -439,13 +473,32 @@ class GrassTile:
 
                 outline = []
 
-                #move the outline points closer to the center of the grass img based on how much the grass has burnt. 
-                for p in img_mask.outline(every=2):
-                    dist_from_base_ratio = (mask_img.get_height() - p[1]) / (2*mask_img.get_height()  ) 
-                    burn_ratio = max(dist_from_base_ratio,self.burn_life/self.max_burn_life)
-                    move_vec = ((centroid[0] - p[0])*(1-burn_ratio), (centroid[1]- p[1])*(1-burn_ratio))
-                    outline.append((p[0] + move_vec[0],p[1] + move_vec[1]))
+                #move the outline points closer to the center of the grass img based on how much the grass has burnt. - I realize it has to be a normal to the angle vector. 
+                
+                normal_vec =pygame.math.Vector2(math.cos(math.radians(self.true_rotation)),math.sin(math.radians(self.true_rotation)))
+                 
 
+                #normal_vec = pygame.math.Vector2(math.cos(math.radians(self.true_rotation)),math.sin(math.radians(abs(self.true_rotation)))).normalize()
+                for p in img_mask.outline(every=2):
+                    
+                    nom = abs(math.tan(math.radians(self.true_rotation)) * p[0] - p[1] + centroid[1] - math.tan(math.radians(self.true_rotation)) * centroid[0])
+                    denom = math.sqrt(math.tan(math.radians(self.true_rotation)) * math.tan(math.radians(self.true_rotation)) + 1)
+                    dist_of_p_from_vec = nom/denom
+                    y_of_x_in_func = math.tan(math.radians(self.true_rotation)) * (p[0] - centroid[0]) + centroid[1]
+                    if y_of_x_in_func < p[1]: dir_normal_vec = False
+                    else: dir_normal_vec = True 
+                    
+
+                    dist_from_base_ratio = (mask_img.get_height() - p[1]) / (2*mask_img.get_height())
+                    burn_ratio = 1 - max(dist_from_base_ratio,self.burn_life/self.max_burn_life)
+
+                    mov_vec_mag = max(0.01 , burn_ratio * dist_of_p_from_vec)
+
+                    normal_vec.scale_to_length(mov_vec_mag)
+                    new_point = (p[0] + normal_vec[0] * (2*dir_normal_vec-1), p[1] + normal_vec[1] * (2*dir_normal_vec-1))
+
+                    outline.append(new_point)
+                    
                 #create a polygon out of those shrunk points and put it on a surf. 
                 poly_surf = pygame.Surface((img.get_width(),img.get_height()))
                 poly_surf.set_colorkey((0,0,0))
@@ -453,7 +506,21 @@ class GrassTile:
 
                 #test polygon for how it looks 
 
-                surf.blit(poly_surf,(self.loc[0] - offset[0] - self.padding, self.loc[1] - offset[1] - self.padding))
+                surf.blit(poly_surf,(self.loc[0] - offset[0] - self.padding, self.loc[1] - offset[1] - self.padding ))
+
+
+                """
+                poly_mask = pygame.mask.from_surface(poly_surf)
+                poly_surf = poly_mask.to_surface(unsetcolor=(0,0,0,0),setcolor=(255,255,255,255))
+                #poly_surf.set_colorkey((255,255,255))
+
+                final_surf = pygame.Surface(img.get_size())
+                final_surf.blit(img,(0,0))
+                final_surf.blit(poly_surf,(0,0))
+                final_surf.set_colorkey((0,0,0))
+
+                surf.blit(final_surf,(self.loc[0] - offset[0] - self.padding, self.loc[1] - offset[1] - self.padding))
+                """
             else: 
 
 
