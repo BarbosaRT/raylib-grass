@@ -392,6 +392,11 @@ class GrassTile:
                     #test polygon for how it looks 
 
                     surf.blit(poly_surf,(self.loc[0] - offset[0] - self.padding, self.loc[1] - offset[1] - self.padding))
+
+                    #looks good, now you have to blit the overlapping area of that mask and the mask of the original image. 
+
+                    #then, shade the pixels of the image. 
+                    
                     """
                     short_surf = pygame.Surface((img.get_width(),int(mask_img.get_height() * (self.burn_life/self.max_burn_life))))
                     short_surf.set_colorkey((0,0,0))
@@ -454,6 +459,11 @@ class GrassTile:
                 #test polygon for how it looks 
 
                 surf.blit(poly_surf,(self.loc[0] - offset[0] - self.padding, self.loc[1] - offset[1] - self.padding))
+
+                #looks good, now you have to blit the overlapping area of that mask and the mask of the original image. 
+
+                #then, shade the pixels of the image. 
+
             else: 
 
 
