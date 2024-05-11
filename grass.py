@@ -323,9 +323,7 @@ class GrassTile:
         #if the grass is burning, this is what I'm going to do. The height, of the grass, decreases as the burning time decreases.
         #How do I decrease the height of the grass? use a shorter surface. 
 
-        #caching is fucking up this whole process. ok, if you are burning, don't cache. 
-
-        #if you are burning, don't fucking cache. that is the answer. 
+   
         """
         if self.burning:
             print(self.burn_life)
