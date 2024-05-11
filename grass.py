@@ -77,6 +77,10 @@ from copy import deepcopy
 
 import pygame
 
+BURN_CHECK_OFFSETS = [(-1,-1),(0,-1),(1,-1),(-1,0),(1,0),(-1,1),(0,1),(1,1)]
+BURN_SPREAD_RANGE = 3
+
+
 def normalize(val, amt, target):
     if val > target + amt:
         val -= amt
@@ -131,7 +135,7 @@ class GrassManager:
     def burn_tile(self,location):
         if tuple(location) in self.grass_tiles: 
             #if the location does indeed have grass, burn the grass.
-            self.grass_tiles[tuple(location)].burning = True 
+            self.grass_tiles[tuple(location)].burning = 0
         
 
 
@@ -175,6 +179,14 @@ class GrassManager:
         # render the grass tiles
         for pos in render_list:
             tile = self.grass_tiles[pos]
+            if tile.burning == 0:
+
+                
+                for offset_ in BURN_CHECK_OFFSETS:
+                    check_pos = (pos[0] + offset_[0] , pos[1]+offset_[1] )
+                    if check_pos in self.grass_tiles:
+                        self.grass_tiles[check_pos].burning =  max(0,self.grass_tiles[check_pos].burning -1) 
+
             tile.render(surf, dt, offset=offset)
             if rot_function:
                 tile.set_rotation(rot_function(tile.loc[0], tile.loc[1]),dt)
@@ -220,7 +232,7 @@ class GrassTile:
         self.burn_life = 30
         self.max_burn_life = 30
 
-        self.burning = False 
+        self.burning = 60
 
         # generate blade data
         y_range = self.gm.vertical_place_range[1] - self.gm.vertical_place_range[0]
@@ -251,6 +263,7 @@ class GrassTile:
         self.custom_blade_data = None
 
         self.update_render_data(0)
+       
 
     # apply a force that affects each blade individually based on distance instead of the rotation of the entire tile
     def apply_force(self, force_point, force_radius, force_dropoff):
@@ -272,11 +285,12 @@ class GrassTile:
                 self.custom_blade_data[i] = [blade[0], blade[1], blade[2] + dir * force * 90]
 
 
+    #burn spread here 
 
     # update the identifier used to find a valid cached image
     def update_render_data(self,dt):
         #print(dt)
-        if self.burning:
+        if self.burning == 0:
             self.burn_life = max(0,self.burn_life - 25 * dt)
         #basically updates rotation 
         
@@ -364,7 +378,7 @@ class GrassTile:
                 #mask_img = img_mask.to_surface(unsetcolor=(0,0,0,0))
                
                 
-                if self.burning:
+                if self.burning == 0:
                     #if it is burning, it will have two things: the grass height is gonna decrease over time as it burns, and the outline of the grass will  shrink, and it will flicker. 
                     img_mask  = pygame.mask.from_surface(img)
                     mask_img = img_mask.to_surface()
@@ -376,33 +390,21 @@ class GrassTile:
 
                     outline = []
 
+                     
+                    min_loc = 0
                     #move the outline points closer to the center of the grass img based on how much the grass has burnt. 
                     
-                    normal_vec =pygame.math.Vector2(math.cos(math.radians(self.true_rotation)),math.sin(math.radians(self.true_rotation)))
-                 
-
-                    #normal_vec = pygame.math.Vector2(math.cos(math.radians(self.true_rotation)),math.sin(math.radians(abs(self.true_rotation)))).normalize()
                     for p in img_mask.outline(every=2):
-                        
-                        nom = abs(math.tan(math.radians(self.true_rotation)) * p[0] - p[1] + centroid[1] - math.tan(math.radians(self.true_rotation)) * centroid[0])
-                        denom = math.sqrt(math.tan(math.radians(self.true_rotation)) * math.tan(math.radians(self.true_rotation)) + 1)
-                        dist_of_p_from_vec = nom/denom
-                        y_of_x_in_func = math.tan(math.radians(self.true_rotation)) * (p[0] - centroid[0]) + centroid[1]
-                        if y_of_x_in_func < p[1]: dir_normal_vec = False
-                        else: dir_normal_vec = True 
-                     
-                        
-                        #dist_from_base_ratio = (mask_img.get_height() - p[1]) / (2*mask_img.get_height())
-                        burn_ratio = 1 - max(0,self.burn_life/self.max_burn_life)
+                        dist_from_base_ratio = (mask_img.get_height() - p[1]) / (2*mask_img.get_height())
+                        burn_ratio = max(dist_from_base_ratio,self.burn_life/self.max_burn_life)
+                        move_vec = ((centroid[0] - p[0])*(1-burn_ratio), (centroid[1]- p[1])*(1-burn_ratio))
+                        outline.append((p[0] + move_vec[0],p[1] + move_vec[1]))
 
-                        mov_vec_mag = max(0.01 , burn_ratio * dist_of_p_from_vec)
+                        if min_loc < p[1] + move_vec[1]:
+                            min_loc  =p[1] + move_vec[1]
 
-                        normal_vec.scale_to_length(mov_vec_mag)
-                        new_point = (p[0] + normal_vec[0] * (2*dir_normal_vec-1), p[1] + normal_vec[1] * (2*dir_normal_vec-1))
-
-                        outline.append(new_point)
-                    
-                    
+                    height_offset = mask_img.get_height() - min_loc - self.padding
+            
 
                     #create a polygon out of those shrunk points and put it on a surf. 
                     poly_surf = pygame.Surface((img.get_width(),img.get_height()))
@@ -411,21 +413,7 @@ class GrassTile:
 
                     #test polygon for how it looks 
 
-                    surf.blit(poly_surf,(self.loc[0] - offset[0] - self.padding, self.loc[1] - offset[1] - self.padding))
-                    
-                    #so now I need to find the overlapping part of the polygon mask, and the img mask
-                    """
-                    poly_mask = pygame.mask.from_surface(poly_surf)
-                    poly_surf = poly_mask.to_surface(unsetcolor=(0,0,0,0),setcolor=(255,255,255,255))
-                    #poly_surf.set_colorkey((255,255,255))
-
-                    final_surf = pygame.Surface(img.get_size())
-                    final_surf.blit(img,(0,0))
-                    final_surf.blit(poly_surf,(0,0))
-                    final_surf.set_colorkey((0,0,0))
-
-                    surf.blit(final_surf,(self.loc[0] - offset[0] - self.padding, self.loc[1] - offset[1] - self.padding))
-                    """
+                    surf.blit(poly_surf,(self.loc[0] - offset[0] - self.padding, self.loc[1] - offset[1] - self.padding+height_offset))
                     """
                     short_surf = pygame.Surface((img.get_width(),int(mask_img.get_height() * (self.burn_life/self.max_burn_life))))
                     short_surf.set_colorkey((0,0,0))
@@ -459,7 +447,7 @@ class GrassTile:
                 self.gm.grass_cache[self.render_data] = self.render_tile()
 
             # render image from the cache
-            if self.burning:
+            if self.burning == 0:
                 
                 #if it is burning, it will have two things: the grass height is gonna decrease over time as it burns, and the outline of the grass will  shrink, and it will flicker. 
                 img = self.gm.grass_cache[self.render_data]
@@ -473,32 +461,20 @@ class GrassTile:
 
                 outline = []
 
-                #move the outline points closer to the center of the grass img based on how much the grass has burnt. - I realize it has to be a normal to the angle vector. 
+                #move the outline points closer to the center of the grass img based on how much the grass has burnt. 
+                min_loc = 0
+                #move the outline points closer to the center of the grass img based on how much the grass has burnt. 
                 
-                normal_vec =pygame.math.Vector2(math.cos(math.radians(self.true_rotation)),math.sin(math.radians(self.true_rotation)))
-                 
-
-                #normal_vec = pygame.math.Vector2(math.cos(math.radians(self.true_rotation)),math.sin(math.radians(abs(self.true_rotation)))).normalize()
                 for p in img_mask.outline(every=2):
-                    
-                    nom = abs(math.tan(math.radians(self.true_rotation)) * p[0] - p[1] + centroid[1] - math.tan(math.radians(self.true_rotation)) * centroid[0])
-                    denom = math.sqrt(math.tan(math.radians(self.true_rotation)) * math.tan(math.radians(self.true_rotation)) + 1)
-                    dist_of_p_from_vec = nom/denom
-                    y_of_x_in_func = math.tan(math.radians(self.true_rotation)) * (p[0] - centroid[0]) + centroid[1]
-                    if y_of_x_in_func < p[1]: dir_normal_vec = False
-                    else: dir_normal_vec = True 
-                    
-
                     dist_from_base_ratio = (mask_img.get_height() - p[1]) / (2*mask_img.get_height())
-                    burn_ratio = 1 - max(dist_from_base_ratio,self.burn_life/self.max_burn_life)
+                    burn_ratio = max(dist_from_base_ratio,self.burn_life/self.max_burn_life)
+                    move_vec = ((centroid[0] - p[0])*(1-burn_ratio), (centroid[1]- p[1])*(1-burn_ratio))
+                    outline.append((p[0] + move_vec[0],p[1] + move_vec[1]))
 
-                    mov_vec_mag = max(0.01 , burn_ratio * dist_of_p_from_vec)
+                    if min_loc < p[1] + move_vec[1]:
+                        min_loc  =p[1] + move_vec[1]
+                height_offset = mask_img.get_height() - min_loc - self.padding
 
-                    normal_vec.scale_to_length(mov_vec_mag)
-                    new_point = (p[0] + normal_vec[0] * (2*dir_normal_vec-1), p[1] + normal_vec[1] * (2*dir_normal_vec-1))
-
-                    outline.append(new_point)
-                    
                 #create a polygon out of those shrunk points and put it on a surf. 
                 poly_surf = pygame.Surface((img.get_width(),img.get_height()))
                 poly_surf.set_colorkey((0,0,0))
@@ -506,21 +482,7 @@ class GrassTile:
 
                 #test polygon for how it looks 
 
-                surf.blit(poly_surf,(self.loc[0] - offset[0] - self.padding, self.loc[1] - offset[1] - self.padding ))
-
-
-                """
-                poly_mask = pygame.mask.from_surface(poly_surf)
-                poly_surf = poly_mask.to_surface(unsetcolor=(0,0,0,0),setcolor=(255,255,255,255))
-                #poly_surf.set_colorkey((255,255,255))
-
-                final_surf = pygame.Surface(img.get_size())
-                final_surf.blit(img,(0,0))
-                final_surf.blit(poly_surf,(0,0))
-                final_surf.set_colorkey((0,0,0))
-
-                surf.blit(final_surf,(self.loc[0] - offset[0] - self.padding, self.loc[1] - offset[1] - self.padding))
-                """
+                surf.blit(poly_surf,(self.loc[0] - offset[0] - self.padding, self.loc[1] - offset[1] - self.padding + height_offset))
             else: 
 
 
