@@ -203,15 +203,30 @@ class GrassAssets:
             img.set_colorkey((0, 0, 0))
             self.blades.append(img)
 
-    def render_blade(self, surf, blade_id, location, rotation):
+    def render_blade(self, surf, blade_id, location, rotation,scale,palette):
+
+        #before you rotate it, scale it. 
+        
         # rotate the blade
         rot_img = pygame.transform.rotate(self.blades[blade_id], rotation)
+        rot_img = pygame.transform.scale(rot_img,(rot_img.get_width()*scale,rot_img.get_height()*scale))
 
         # shade the blade of grass based on its rotation
         shade = pygame.Surface(rot_img.get_size())
         shade_amt = self.gm.shade_amount * (abs(rotation) / 90)
+        
         shade.set_alpha(shade_amt)
+
+        #if the grass is burning, add a burning color to it. 
+        if 0<scale < 1:
+            red_mask = pygame.mask.from_surface(rot_img)
+            red_mask.to_surface(rot_img,setcolor=(min(255,palette[0]*(1.8)*(1/scale*6)),min(255,palette[1] *(1/scale*1)) ,min(255,palette[2] *(1/scale*1))))
+            
+        
+
         rot_img.blit(shade, (0, 0))
+
+ 
 
         # render the blade
         surf.blit(rot_img, (location[0] - rot_img.get_width() // 2, location[1] - rot_img.get_height() // 2))
@@ -238,12 +253,28 @@ class GrassTile:
         y_range = self.gm.vertical_place_range[1] - self.gm.vertical_place_range[0]
         for i in range(amt):
             new_blade = random.choice(config)
+            img = self.ga.blades[new_blade]
+            avg_rgb = [0,0,0]
+            count = 0
+            for x in range(0,img.get_width()):
+                for y in range(0,img.get_height()):
+                                        
+                    rgb = img.get_at((x,y))
+                    if rgb != (0,0,0,255):
+                        count += 1
+                        avg_rgb[0] += rgb[0]
+                        avg_rgb[1] += rgb[1]
+                        avg_rgb[2] += rgb[2]
+
+            avg_rgb[0] /= count
+            avg_rgb[1] /= count
+            avg_rgb[2] /= count
 
             y_pos = self.gm.vertical_place_range[0]
             if y_range:
                 y_pos = random.random() * y_range + self.gm.vertical_place_range[0]
 
-            self.blades.append([(random.random() * self.size, y_pos * self.size), new_blade, random.random() * 30 - 15])
+            self.blades.append([(random.random() * self.size, y_pos * self.size), new_blade, random.random() * 30 - 15,avg_rgb])
 
         # layer back to front
         self.blades.sort(key=lambda x: x[1])
@@ -282,7 +313,7 @@ class GrassTile:
             dir = 1 if force_point[0] > (self.loc[0] + blade[0][0]) else -1
             # don't update unless force is greater
             if not self.custom_blade_data[i] or abs(self.custom_blade_data[i][2] - self.blades[i][2]) <= abs(force) * 90:
-                self.custom_blade_data[i] = [blade[0], blade[1], blade[2] + dir * force * 90]
+                self.custom_blade_data[i] = [blade[0], blade[1], blade[2] + dir * force * 90,blade[3]]
 
 
     #burn spread here 
@@ -292,6 +323,8 @@ class GrassTile:
         #print(dt)
         if self.burning == 0:
             self.burn_life = max(0,self.burn_life - 25 * dt)
+          
+
         #basically updates rotation 
         
         self.render_data = (self.base_id, self.master_rotation)
@@ -346,7 +379,7 @@ class GrassTile:
 
         # render each blade using the asset manager
         for blade in blades:
-            self.ga.render_blade(surf, blade[1], (blade[0][0] + self.padding, blade[0][1] + self.padding), max(-90, min(90, blade[2] + self.true_rotation)))
+            self.ga.render_blade(surf, blade[1], (blade[0][0] + self.padding, blade[0][1] + self.padding), max(-90, min(90, blade[2] + self.true_rotation)),self.burn_life/self.max_burn_life,blade[3])
 
         # return surf and shadow_surf if applicable
         if render_shadow:
@@ -363,21 +396,99 @@ class GrassTile:
     def render(self, surf, dt, offset=(0, 0)):
         # render a new grass tile image if using custom uncached data otherwise use cached data if possible Also, if the tile is burning, don't use 
         # cached data. As burning is another state.
+
+        if self.burning == 0: 
+            #if it is burning, no caaache. Performance? well, the grass will be deleted after the burn duration, so performace shouldn't be a big issue. 
+            img = self.render_tile() 
+            surf.blit(img, (self.loc[0] - offset[0] - self.padding, self.loc[1] - offset[1] - self.padding))
+        else: 
+
         
-       
-        if self.custom_blade_data:
-                #if not cached, 
+            if self.custom_blade_data:
+                    #if not cached, 
 
+                    
+                    img = self.render_tile() 
+                    
+                    
                 
-                img = self.render_tile() 
-                
-            
 
-                #mask_img = img_mask.to_surface(unsetcolor=(0,0,0,0))
-               
+                    #mask_img = img_mask.to_surface(unsetcolor=(0,0,0,0))
+                    """
+                    
+                    if self.burning == 0:
+                        #if it is burning, it will have two things: the grass height is gonna decrease over time as it burns, and the outline of the grass will  shrink, and it will flicker. 
+                        img_mask  = pygame.mask.from_surface(img)
+                        mask_img = img_mask.to_surface()
+
+                        centroid = img_mask.centroid()
+                        #center = (centroid[0] +self.loc[0]- offset[0] - self.padding,  centroid[1]+self.loc[1]- offset[1] - self.padding )
+                        #outline = [(p[0] + self.loc[0] - offset[0] - self.padding, p[1] + self.loc[1]- offset[1] - self.padding) for p in img_mask.outline(every=6)]
+                        #outline = [(p[0],p[1]) for p in img_mask.outline(every =6)]
+
+                        outline = []
+
+                        
+                        min_loc = 0
+                        #move the outline points closer to the center of the grass img based on how much the grass has burnt. 
+                        
+                        for p in img_mask.outline(every=2):
+                            dist_from_base_ratio = (mask_img.get_height() - p[1]) / (2*mask_img.get_height())
+                            burn_ratio = max(dist_from_base_ratio,self.burn_life/self.max_burn_life)
+                            move_vec = ((centroid[0] - p[0])*(1-burn_ratio), (centroid[1]- p[1])*(1-burn_ratio))
+                            outline.append((p[0] + move_vec[0],p[1] + move_vec[1]))
+
+                            if min_loc < p[1] + move_vec[1]:
+                                min_loc  =p[1] + move_vec[1]
+
+                        height_offset = mask_img.get_height() - min_loc - self.padding
                 
+
+                        #create a polygon out of those shrunk points and put it on a surf. 
+                        poly_surf = pygame.Surface((img.get_width(),img.get_height()))
+                        poly_surf.set_colorkey((0,0,0))
+                        pygame.draw.polygon(poly_surf,(255,255,255),outline)
+
+                        #test polygon for how it looks 
+
+                        surf.blit(poly_surf,(self.loc[0] - offset[0] - self.padding, self.loc[1] - offset[1] - self.padding+height_offset))
+                    
+                        short_surf = pygame.Surface((img.get_width(),int(mask_img.get_height() * (self.burn_life/self.max_burn_life))))
+                        short_surf.set_colorkey((0,0,0))
+                        cut_offset = (0,short_surf.get_height()-img.get_height())
+                        short_surf.blit(img,cut_offset)
+                        surf.blit(short_surf, (self.loc[0] - offset[0] - self.padding - cut_offset[0], self.loc[1] - offset[1] - self.padding- cut_offset[1]))
+                        
+                        pass
+                    else: 
+                    """
+                    surf.blit(img, (self.loc[0] - offset[0] - self.padding, self.loc[1] - offset[1] - self.padding))
+                    
+                    """
+                    #surf.blit(mask_img, (self.loc[0] - offset[0] - self.padding, self.loc[1] - offset[1] - self.padding))
+                    for point in outline:
+                        surf.set_at((point[0],point[1]),(255,0,255))
+                    surf.set_at(center,(0,0,0))
+                    #pygame.draw.lines(surf,(255,0,255),False, outline,1)
+                    """
+                
+
+            else:
+                #if it is cached, 
+                
+                # check if a new cached image needs to be generated and use the cached data if not (also cache shadow if necessary)
+                if (self.render_data not in self.gm.grass_cache) and (self.gm.ground_shadow[0] and (self.base_id not in self.gm.shadow_cache)):
+                    grass_img, shadow_img = self.render_tile(render_shadow=True)
+                    self.gm.grass_cache[self.render_data] = grass_img
+                    self.gm.shadow_cache[self.base_id] = shadow_img
+                elif self.render_data not in self.gm.grass_cache:
+                    self.gm.grass_cache[self.render_data] = self.render_tile()
+                """
+                # render image from the cache
                 if self.burning == 0:
+                    
                     #if it is burning, it will have two things: the grass height is gonna decrease over time as it burns, and the outline of the grass will  shrink, and it will flicker. 
+                    img = self.gm.grass_cache[self.render_data]
                     img_mask  = pygame.mask.from_surface(img)
                     mask_img = img_mask.to_surface()
 
@@ -388,7 +499,7 @@ class GrassTile:
 
                     outline = []
 
-                     
+                    #move the outline points closer to the center of the grass img based on how much the grass has burnt. 
                     min_loc = 0
                     #move the outline points closer to the center of the grass img based on how much the grass has burnt. 
                     
@@ -400,9 +511,7 @@ class GrassTile:
 
                         if min_loc < p[1] + move_vec[1]:
                             min_loc  =p[1] + move_vec[1]
-
                     height_offset = mask_img.get_height() - min_loc - self.padding
-            
 
                     #create a polygon out of those shrunk points and put it on a surf. 
                     poly_surf = pygame.Surface((img.get_width(),img.get_height()))
@@ -411,79 +520,11 @@ class GrassTile:
 
                     #test polygon for how it looks 
 
-                    surf.blit(poly_surf,(self.loc[0] - offset[0] - self.padding, self.loc[1] - offset[1] - self.padding+height_offset))
-                    """
-                    short_surf = pygame.Surface((img.get_width(),int(mask_img.get_height() * (self.burn_life/self.max_burn_life))))
-                    short_surf.set_colorkey((0,0,0))
-                    cut_offset = (0,short_surf.get_height()-img.get_height())
-                    short_surf.blit(img,cut_offset)
-                    surf.blit(short_surf, (self.loc[0] - offset[0] - self.padding - cut_offset[0], self.loc[1] - offset[1] - self.padding- cut_offset[1]))
-                    """
-                    pass
+                    surf.blit(poly_surf,(self.loc[0] - offset[0] - self.padding, self.loc[1] - offset[1] - self.padding + height_offset))
                 else: 
 
-                    surf.blit(img, (self.loc[0] - offset[0] - self.padding, self.loc[1] - offset[1] - self.padding))
-                    pass  
-                """
-                #surf.blit(mask_img, (self.loc[0] - offset[0] - self.padding, self.loc[1] - offset[1] - self.padding))
-                for point in outline:
-                    surf.set_at((point[0],point[1]),(255,0,255))
-                surf.set_at(center,(0,0,0))
-                #pygame.draw.lines(surf,(255,0,255),False, outline,1)
-                """
-            
-
-        else:
-            #if it is cached, 
-            
-            # check if a new cached image needs to be generated and use the cached data if not (also cache shadow if necessary)
-            if (self.render_data not in self.gm.grass_cache) and (self.gm.ground_shadow[0] and (self.base_id not in self.gm.shadow_cache)):
-                grass_img, shadow_img = self.render_tile(render_shadow=True)
-                self.gm.grass_cache[self.render_data] = grass_img
-                self.gm.shadow_cache[self.base_id] = shadow_img
-            elif self.render_data not in self.gm.grass_cache:
-                self.gm.grass_cache[self.render_data] = self.render_tile()
-
-            # render image from the cache
-            if self.burning == 0:
+                    """
                 
-                #if it is burning, it will have two things: the grass height is gonna decrease over time as it burns, and the outline of the grass will  shrink, and it will flicker. 
-                img = self.gm.grass_cache[self.render_data]
-                img_mask  = pygame.mask.from_surface(img)
-                mask_img = img_mask.to_surface()
-
-                centroid = img_mask.centroid()
-                #center = (centroid[0] +self.loc[0]- offset[0] - self.padding,  centroid[1]+self.loc[1]- offset[1] - self.padding )
-                #outline = [(p[0] + self.loc[0] - offset[0] - self.padding, p[1] + self.loc[1]- offset[1] - self.padding) for p in img_mask.outline(every=6)]
-                #outline = [(p[0],p[1]) for p in img_mask.outline(every =6)]
-
-                outline = []
-
-                #move the outline points closer to the center of the grass img based on how much the grass has burnt. 
-                min_loc = 0
-                #move the outline points closer to the center of the grass img based on how much the grass has burnt. 
-                
-                for p in img_mask.outline(every=2):
-                    dist_from_base_ratio = (mask_img.get_height() - p[1]) / (2*mask_img.get_height())
-                    burn_ratio = max(dist_from_base_ratio,self.burn_life/self.max_burn_life)
-                    move_vec = ((centroid[0] - p[0])*(1-burn_ratio), (centroid[1]- p[1])*(1-burn_ratio))
-                    outline.append((p[0] + move_vec[0],p[1] + move_vec[1]))
-
-                    if min_loc < p[1] + move_vec[1]:
-                        min_loc  =p[1] + move_vec[1]
-                height_offset = mask_img.get_height() - min_loc - self.padding
-
-                #create a polygon out of those shrunk points and put it on a surf. 
-                poly_surf = pygame.Surface((img.get_width(),img.get_height()))
-                poly_surf.set_colorkey((0,0,0))
-                pygame.draw.polygon(poly_surf,(255,255,255),outline)
-
-                #test polygon for how it looks 
-
-                surf.blit(poly_surf,(self.loc[0] - offset[0] - self.padding, self.loc[1] - offset[1] - self.padding + height_offset))
-            else: 
-
-
                 surf.blit(self.gm.grass_cache[self.render_data], (self.loc[0] - offset[0] - self.padding, self.loc[1] - offset[1] - self.padding))
 
         # attempt to move blades back to their base position
