@@ -225,7 +225,7 @@ class GrassAssets:
         #before you rotate it, scale it. 
         
         # rotate the blade
-        rot_img = pygame.transform.rotate(self.blades[blade_id], rotation)
+        rot_img = pygame.transform.rotate(self.blades[blade_id][0], rotation)
         rot_img = pygame.transform.scale(rot_img,(rot_img.get_width()*scale,rot_img.get_height()*scale))
 
         # shade the blade of grass based on its rotation
@@ -273,10 +273,10 @@ class GrassTile:
             img = self.ga.blades[new_blade]
             avg_rgb = [0,0,0]
             count = 0
-            for x in range(0,img.get_width()):
-                for y in range(0,img.get_height()):
+            for x in range(0,img[0].get_width()):
+                for y in range(0,img[0].get_height()):
                                         
-                    rgb = img.get_at((x,y))
+                    rgb = img[0].get_at((x,y))
                     if rgb != (0,0,0,255):
                         count += 1
                         avg_rgb[0] += rgb[0]
