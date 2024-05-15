@@ -201,11 +201,31 @@ class GrassAssets:
         for blade in sorted(os.listdir(path)):
             img = pygame.image.load(path + '/' + blade).convert()
             img.set_colorkey((0, 0, 0))
-            self.blades.append(img)
+            
+            sum = [0,0,0]
+            length = 0
+            for x in range(0,img.get_width()):
+                for y in range(0,img.get_height()):
+                    
+                    color = img.get_at((x,y))
+                    if color != (0,0,0):
+                        sum[0] += color[0] 
+                        sum[1] += color[1]
+                        sum[2] +=color[2] 
+                        length+=1
+
+            avg_color = (int(sum[0]/length),int(sum[1]/length),int(sum[2]/length))
+
+            self.blades.append((img,avg_color))
+
+        
 
     def render_blade(self, surf, blade_id, location, rotation):
         # rotate the blade
-        rot_img = pygame.transform.rotate(self.blades[blade_id], rotation)
+        blade = self.blades[blade_id]
+        
+        
+        rot_img = pygame.transform.rotate(self.blades[blade_id][0], rotation)
 
         # shade the blade of grass based on its rotation
         shade = pygame.Surface(rot_img.get_size())
@@ -238,12 +258,14 @@ class GrassTile:
         y_range = self.gm.vertical_place_range[1] - self.gm.vertical_place_range[0]
         for i in range(amt):
             new_blade = random.choice(config)
+            palatte = self.ga.blades[new_blade][1]
+            
 
             y_pos = self.gm.vertical_place_range[0]
             if y_range:
                 y_pos = random.random() * y_range + self.gm.vertical_place_range[0]
 
-            self.blades.append([(random.random() * self.size, y_pos * self.size), new_blade, random.random() * 30 - 15])
+            self.blades.append([(random.random() * self.size, y_pos * self.size), new_blade, random.random() * 30 - 15,palatte])
 
         # layer back to front
         self.blades.sort(key=lambda x: x[1])
@@ -282,7 +304,7 @@ class GrassTile:
             dir = 1 if force_point[0] > (self.loc[0] + blade[0][0]) else -1
             # don't update unless force is greater
             if not self.custom_blade_data[i] or abs(self.custom_blade_data[i][2] - self.blades[i][2]) <= abs(force) * 90:
-                self.custom_blade_data[i] = [blade[0], blade[1], blade[2] + dir * force * 90]
+                self.custom_blade_data[i] = [blade[0], blade[1], blade[2] + dir * force * 90,blade[3]]
 
 
     #burn spread here 
@@ -346,8 +368,10 @@ class GrassTile:
                 pygame.draw.circle(shadow_surf, self.gm.ground_shadow[1], (blade[0][0] + self.padding, blade[0][1] + self.padding), self.gm.ground_shadow[0])
             shadow_surf.set_alpha(self.gm.ground_shadow[2])
 
+       
         # render each blade using the asset manager
         for blade in blades:
+            
             self.ga.render_blade(surf, blade[1], (blade[0][0] + self.padding, blade[0][1] + self.padding), max(-90, min(90, blade[2] + self.true_rotation)))
 
         # return surf and shadow_surf if applicable
@@ -366,6 +390,7 @@ class GrassTile:
         # render a new grass tile image if using custom uncached data otherwise use cached data if possible Also, if the tile is burning, don't use 
         # cached data. As burning is another state.
         
+      
        
         if self.custom_blade_data:
                 #if not cached, 
@@ -410,10 +435,17 @@ class GrassTile:
                     poly_surf = pygame.Surface((img.get_width(),img.get_height()))
                     poly_surf.set_colorkey((0,0,0))
                     pygame.draw.polygon(poly_surf,(255,255,255),outline)
+                    
+
 
                     #test polygon for how it looks 
 
                     surf.blit(poly_surf,(self.loc[0] - offset[0] - self.padding, self.loc[1] - offset[1] - self.padding+height_offset))
+
+
+                    #looks good. Now I need to use this polygon image to crop out from the original image. 
+
+
                     """
                     short_surf = pygame.Surface((img.get_width(),int(mask_img.get_height() * (self.burn_life/self.max_burn_life))))
                     short_surf.set_colorkey((0,0,0))
@@ -483,6 +515,8 @@ class GrassTile:
                 #test polygon for how it looks 
 
                 surf.blit(poly_surf,(self.loc[0] - offset[0] - self.padding, self.loc[1] - offset[1] - self.padding + height_offset))
+
+
             else: 
 
 
