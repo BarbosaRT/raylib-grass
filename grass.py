@@ -164,12 +164,14 @@ class GrassManager:
         base_pos = (int(offset[0] // self.tile_size), int(offset[1] // self.tile_size))
 
         # get list of grass tiles to render based on visible area
+
         render_list = []
         for y in range(visible_tile_range[1]):
             for x in range(visible_tile_range[0]):
                 pos = (base_pos[0] + x, base_pos[1] + y)
                 if pos in self.grass_tiles:
                     render_list.append(pos)
+        
 
         # render shadow if applicable
         if self.ground_shadow[0]:
@@ -321,14 +323,22 @@ class GrassTile:
     # update the identifier used to find a valid cached image
     def update_render_data(self,dt):
         #print(dt)
+        
         if self.burning == 0:
             self.burn_life = max(0,self.burn_life - 25 * dt)
-          
+            #if the grass has burnt out completely, then gt rid of the grass data, where? from the grasstiles list, and from the cache. 
+            if self.burn_life  == 0:
+                self.blades = [None] * len(self.blades)
+                check_loc = (self.loc[0]//self.size,self.loc[1]//self.size)
+                del self.gm.grass_tiles[check_loc]
+                del self
+                
+        else: 
 
         #basically updates rotation 
         
-        self.render_data = (self.base_id, self.master_rotation)
-        self.true_rotation = self.inc * self.master_rotation
+            self.render_data = (self.base_id, self.master_rotation)
+            self.true_rotation = self.inc * self.master_rotation
 
     # set new master tile rotation
     def set_rotation(self, rotation,dt):
