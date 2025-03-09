@@ -1,0 +1,19 @@
+#pragma once
+#include <vector>
+#include <string>
+#include <raylib.h>
+#include "Utils.hpp"
+
+class GrassAssets {
+public:
+    std::vector<Blade> blades;
+    int shadeAmount;
+    GrassAssets(const std::string& path, int shadeAmount);
+    ~GrassAssets() {
+        // Unload textures when done.
+        for (auto& blade : blades) {
+            UnloadTexture(blade.texture);
+        }
+    };
+    void renderBlade(int id, Vector2 location, int rotation, int scale, Color palette);
+};
