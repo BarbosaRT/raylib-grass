@@ -14,7 +14,7 @@ struct GroundShadow {
     int radius;
     Color color;
     int strength;
-    float shift;
+    Vector2 shift;
 };
 
 struct GrassConfiguration {
@@ -44,5 +44,25 @@ struct BladeData {
 float normalize(float current, float rate, float target);
 
 // ------------------------- Classes -------------------------- //
+#include <memory>  // for std::unique_ptr
+
 class Cache {
+public:
+    // Public static method to access the singleton instance
+    static Cache& get() {
+        static Cache instance;  // This will be the only instance of Cache
+        return instance;
+    }
+
+    int grassId = 0;
+
+private:
+    // Private constructor to prevent instantiation
+    Cache() {
+        // Initialize the cache here if needed
+    }
+
+    // Deleted copy constructor and assignment operator to ensure only one instance
+    Cache(const Cache&) = delete;
+    Cache& operator=(const Cache&) = delete;
 };
