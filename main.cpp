@@ -1,144 +1,152 @@
-﻿/*******************************************************************************************
-*
-*   raylib [core] example - 2D Camera system
-*
-*   Example complexity rating: [★★☆☆] 2/4
-*
-*   Example originally created with raylib 1.5, last time updated with raylib 3.0
-*
-*   Example licensed under an unmodified zlib/libpng license, which is an OSI-certified,
-*   BSD-like license that allows static linking with closed source software
-*
-*   Copyright (c) 2016-2025 Ramon Santamaria (@raysan5)
-*
-********************************************************************************************/
-
-#include <raylib.h>
+﻿#include <raylib.h>
+#include <raymath.h> // For Vector2 operations
 #include "sources/GrassManager.hpp"
+#include <iostream>
+#include <vector>
+#include <random>
 
-#define MAX_BUILDINGS   100
-
-//------------------------------------------------------------------------------------
-// Program main entry point
-//------------------------------------------------------------------------------------
-int main(void)
-{
+int main(void) {
     // Initialization
     //--------------------------------------------------------------------------------------
-    const int screenWidth = 800;
-    const int screenHeight = 450;
+    const int screenWidth = 600;  // Match Pygame example
+    const int screenHeight = 600;
+    const int displayWidth = 300;
+    const int displayHeight = 300;
 
-    InitWindow(screenWidth, screenHeight, "raylib [core] example - 2d camera");
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE); // Good practice
+    InitWindow(screenWidth, screenHeight, "Grass Demo");
 
-    Rectangle player = { 400, 280, 40, 40 };
-    Rectangle buildings[MAX_BUILDINGS] = { 0 };
-    Color buildColors[MAX_BUILDINGS] = { 0 };
+    // Camera setup
+    Camera2D camera = { 0 };
+    camera.zoom = 2.0f; // Start zoomed in (to match display size). This is correct.
+    camera.offset = { screenWidth / 2.0f, screenHeight / 2.0f }; // Correct: Center of the *window*
+    // camera.target is initialized to {0,0} and will be updated in the loop
 
-    int spacing = 0;
+    // Grass Manager initialization
+    GrassManager grassManager("assets/grass", 10, 100, 600, 5, new int[2] {0, 1}, 13); // Use dynamic array
+    grassManager.enableGroundShadows(4, 1, { 0, 0, 1, 255 }, { 1, 2 });
 
-    for (int i = 0; i < MAX_BUILDINGS; i++)
-    {
-        buildings[i].width = (float)GetRandomValue(50, 200);
-        buildings[i].height = (float)GetRandomValue(100, 800);
-        buildings[i].y = screenHeight - 130.0f - buildings[i].height;
-        buildings[i].x = -6000.0f + spacing;
 
-        spacing += (int)buildings[i].width;
-        Color c = { GetRandomValue(200, 240), GetRandomValue(200, 240), GetRandomValue(200, 250), 255 };
-        buildColors[i] = c;
+    // Initial grass placement
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> dis(0.0f, 1.0f);
+
+    for (int y = 5; y < 25; ++y) {
+        for (int x = 5; x < 25; ++x) {
+            float v = dis(gen);
+            if (v > 0.1f) {
+                std::vector<int> bladeIds = { 0, 1, 2, 3, 4 };
+                grassManager.placeTile({ x, y }, (int)(v * 12), bladeIds);
+            }
+        }
     }
 
-    Camera2D camera = { 0 };
-    camera.target = { player.x + 20.0f, player.y + 20.0f };
-    camera.offset = { screenWidth / 2.0f, screenHeight / 2.0f };
-    camera.rotation = 0.0f;
-    camera.zoom = 1.0f;
+    // Variables
+    float t = 0.0f;
+    Vector2 scroll = { 0.0f, 0.0f }; // This represents the camera's *target* (world coordinates)
+    float cameraSpeed = 170.0f * 2.0f; // Adjust speed, multiplied by two because of the zoom.
+    bool clicking = false;
+    float brushSize = 1.0f;
+    bool burn = false;
 
-    GrassManager grassManager("assets/grass"); // Assuming your grass images are in assets/grass
-    grassManager.placeTile({ 0, 0 }, 50, { 0, 1, 2, 3, 4, 0, 1, 2, 3, 4 });  // Example tile
-    grassManager.placeTile({ 1, 0 }, 50, { 0, 1, 2, 3, 4, 0, 1, 2, 3, 4 });  // Example tile
-    grassManager.enableGroundShadows(); //use default shadows.
-
-    SetTargetFPS(60);                   // Set our game to run at 60 frames-per-second
+    SetTargetFPS(1000); // Match the demo
     //--------------------------------------------------------------------------------------
 
     // Main game loop
-    while (!WindowShouldClose())        // Detect window close button or ESC key
-    {
-        // Update
-        //----------------------------------------------------------------------------------
-        // Player movement
-        if (IsKeyDown(KEY_RIGHT)) player.x += 2;
-        else if (IsKeyDown(KEY_LEFT)) player.x -= 2;
+    while (!WindowShouldClose()) {
+        float dt = GetFrameTime();
 
-        // Camera target follows player
-        camera.target = { player.x + 20, player.y + 20 };
+        // --- Input Handling ---
 
-        // Camera rotation controls
-        if (IsKeyDown(KEY_A)) camera.rotation--;
-        else if (IsKeyDown(KEY_S)) camera.rotation++;
+        // Get *screen* mouse position (no scaling needed!)
+        Vector2 mousePos = GetMousePosition();
+        // Convert mouse position to world coordinates
+        Vector2 worldMousePos = GetScreenToWorld2D(mousePos, camera);
 
-        // Limit camera rotation to 80 degrees (-40 to 40)
-        if (camera.rotation > 40) camera.rotation = 40;
-        else if (camera.rotation < -40) camera.rotation = -40;
+        // Camera movement (control the *target*)
+        if (mousePos.x / screenWidth < 0.2f)  scroll.x -= cameraSpeed * dt;
+        if (mousePos.x / screenWidth > 0.8f)  scroll.x += cameraSpeed * dt;
+        if (mousePos.y / screenHeight < 0.2f) scroll.y -= cameraSpeed * dt;
+        if (mousePos.y / screenHeight > 0.8f) scroll.y += cameraSpeed * dt;
 
-        // Camera zoom controls
-        camera.zoom += ((float)GetMouseWheelMove() * 0.05f);
+        // Update camera target
+        camera.target = scroll;  // This is the *correct* way to control camera movement
 
-        if (camera.zoom > 3.0f) camera.zoom = 3.0f;
-        else if (camera.zoom < 0.1f) camera.zoom = 0.1f;
+        // Apply force (use world coordinates)
+        grassManager.applyForce(worldMousePos, 10 * brushSize, 25 * brushSize);
 
-        // Camera reset (zoom and rotation)
-        if (IsKeyPressed(KEY_R))
-        {
-            camera.zoom = 1.0f;
-            camera.rotation = 0.0f;
+
+        // Wind rotation function (using a lambda)
+        std::function<int(int, int)>* rotFunction = new std::function<int(int, int)>(
+            [&](int x, int y) -> int {
+                return (int)(sin(t / 60.0f + x / 100.0f) * 15);
+            }
+        );
+
+        // --- Event Handling ---
+        if (IsKeyPressed(KEY_B)) burn = !burn;
+        if (IsKeyPressed(KEY_ESCAPE)) break;
+
+        if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
+            brushSize = std::min(1.0f, brushSize + (4.0f * dt));
         }
-        //----------------------------------------------------------------------------------
+        if (IsMouseButtonDown(MOUSE_BUTTON_MIDDLE)) {
+            brushSize = std::max(0.1f, brushSize - (4.0f * dt));
+        }
 
-        // Draw
-        //----------------------------------------------------------------------------------
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) clicking = true;
+        if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) clicking = false;
+
+        // --- Update ---
+        t += dt * 100.0f;
+
+        // Place/burn tiles (use world coordinates)
+        if (clicking) {
+            int tileX = (int)(worldMousePos.x / grassManager.gc.tileSize);
+            int tileY = (int)(worldMousePos.y / grassManager.gc.tileSize);
+            std::vector<int> bladeIds = { 0, 1, 2, 3, 4 };
+            if (!burn) {
+                grassManager.placeTile({ tileX, tileY }, (int)(dis(gen) * 12 * brushSize + 1), bladeIds);
+                if (brushSize == 1.0f) {
+                    std::vector<std::pair<int, int>> offsets = {
+                        {-1, 0}, {-1, -1}, {0, -1}, {1, -1},
+                        {1, 0}, {1, 1}, {0, 1}, {-1, 1}
+                    };
+                    for (const auto& offset : offsets) {
+                        grassManager.placeTile({ tileX + offset.first, tileY + offset.second }, (int)(dis(gen) * 14 + 3), bladeIds);
+                    }
+                }
+            }
+            else {
+                grassManager.burnTile({ tileX, tileY });
+            }
+        }
+
+
+        // --- Render ---
         BeginDrawing();
+        ClearBackground({ 27, 66, 52, 255 });
 
-        ClearBackground(RAYWHITE);
+        BeginMode2D(camera); // Essential for camera transformations
 
-        BeginMode2D(camera);
+        // Draw grass (using world coordinates, handled by updateRender)
+        grassManager.updateRender(dt, { (float)displayWidth, (float)displayHeight }, { 0,0 }, rotFunction);
 
-        DrawRectangle(-6000, 320, 13000, 8000, DARKGRAY);
+        // Draw mouse circle (use *world* coordinates)
+        DrawCircleV(worldMousePos, 10 * brushSize - (clicking ? 2 : 0),
+            Fade(WHITE, clicking ? 1.0f : 0.5f));
+        if (clicking) {
+            DrawCircleLinesV(worldMousePos, 10 * brushSize, WHITE);
+        }
 
-        for (int i = 0; i < MAX_BUILDINGS; i++) DrawRectangleRec(buildings[i], buildColors[i]);
+        EndMode2D(); // Essential
 
-        DrawRectangleRec(player, RED);
-
-        DrawLine((int)camera.target.x, -screenHeight * 10, (int)camera.target.x, screenHeight * 10, GREEN);
-        DrawLine(-screenWidth * 10, (int)camera.target.y, screenWidth * 10, (int)camera.target.y, GREEN);
-
-        EndMode2D();
-
-        DrawText("SCREEN AREA", 640, 10, 20, RED);
-
-        DrawRectangle(0, 0, screenWidth, 5, RED);
-        DrawRectangle(0, 5, 5, screenHeight - 10, RED);
-        DrawRectangle(screenWidth - 5, 5, 5, screenHeight - 10, RED);
-        DrawRectangle(0, screenHeight - 5, screenWidth, 5, RED);
-
-        DrawRectangle(10, 10, 250, 113, Fade(SKYBLUE, 0.5f));
-        DrawRectangleLines(10, 10, 250, 113, BLUE);
-
-        DrawText("Free 2d camera controls:", 20, 20, 10, BLACK);
-        DrawText("- Right/Left to move Offset", 40, 40, 10, DARKGRAY);
-        DrawText("- Mouse Wheel to Zoom in-out", 40, 60, 10, DARKGRAY);
-        DrawText("- A / S to Rotate", 40, 80, 10, DARKGRAY);
-        DrawText("- R to reset Zoom and Rotation", 40, 100, 10, DARKGRAY);
-
+        DrawFPS(10, 10);
         EndDrawing();
-        //----------------------------------------------------------------------------------
+        delete rotFunction;
     }
 
-    // De-Initialization
-    //--------------------------------------------------------------------------------------
-    CloseWindow();        // Close window and OpenGL context
-    //--------------------------------------------------------------------------------------
-
+    CloseWindow();
     return 0;
 }

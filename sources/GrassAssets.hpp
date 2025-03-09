@@ -11,6 +11,7 @@ public:
     GrassAssets(const std::string& path, int shadeAmount);
     ~GrassAssets() {
         // Unload textures when done.
+        printf("Unloading Textures");
         for (auto& blade : blades) {
             UnloadTexture(blade.texture);
         }

@@ -48,7 +48,7 @@ void GrassManager::enableGroundShadows(int shadowStrength, int shadowRadius, Col
 }
 
 void GrassManager::burnTile(std::pair<int, int> location) {
-	if (grassTiles.at(location)) {
+	if (grassTiles.count(location) != 0) {
 		grassTiles[location]->burning = 0.0f;
 	}
 }
@@ -93,13 +93,13 @@ void GrassManager::updateRender(float deltaTime, Vector2 screenSize, Vector2 off
 	}
 
 	// Render shadows (if enabled)
-	if (gc.groundShadow.radius > 0) {
+	/*if (gc.groundShadow.radius > 0) {
 		for (const auto& pos : renderList) {
 			GrassTile* tile = grassTiles[pos];
 			// Call a modified RenderShadow function
 			tile->RenderShadow({ offset.x - gc.groundShadow.shift.x, offset.y - gc.groundShadow.shift.y });
 		}
-	}
+	}*/
 
 	// Render grass tiles and handle burning
 	for (const auto& pos : renderList) {
@@ -126,7 +126,7 @@ void GrassManager::updateRender(float deltaTime, Vector2 screenSize, Vector2 off
 		}
 
 		if (markedForDeletion) {
-			tile->blades.clear();
+			//tile->blades.clear();
 			grassTiles.erase(pos);
 			delete tile;
 		}

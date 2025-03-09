@@ -24,18 +24,21 @@ GrassAssets::GrassAssets(const std::string& path, int shadeAmount) : shadeAmount
         }
         Color avgColor = { 0, 0, 0, 255 };
         if (count > 0) {
-            avgColor.r = (unsigned char)(sumR / count);
-            avgColor.g = (unsigned char)(sumG / count);
-            avgColor.b = (unsigned char)(sumB / count);
+            avgColor.r = sumR / count;
+            avgColor.g = sumG / count;
+            avgColor.b = sumB / count;
         }
         UnloadImage(img);
-        blades.push_back({ tex, avgColor });
+        Blade blade;
+        blade.texture = tex;
+        blade.averageColor = avgColor;
+        blades.push_back(blade);
     }
 }
 
 void GrassAssets::renderBlade(int id, Vector2 location, int rotation, int scale, Color palette)
 {
-    if (id < 0 || id >= (int)blades.size()) return;
+    if (id < 0 || id >= blades.size()) return;
     Texture2D tex = blades[id].texture;
     Rectangle source = { 0, 0, (float)tex.width, (float)tex.height };
     float width = tex.width * scale;

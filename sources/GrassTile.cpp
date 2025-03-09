@@ -6,13 +6,17 @@ GrassTile::GrassTile(int tileSize, Vector2 location, int amount, const std::vect
     std::mt19937 gen(rd());
     std::uniform_real_distribution<float> disFloat(0.0f, 1.0f);
     std::uniform_real_distribution<float> disRot(-15.0f, 15.0f);
+    size = tileSize;
+    this->location = location;
     grassConfiguration = gc;
+    ga = grassAssets;
+
     float range = grassConfiguration.verticalPlaceRange[1] - grassConfiguration.verticalPlaceRange[0];
 	for (int i = 0; i < amount; i++) {
         int newBlade = grassOptions[rand() % grassOptions.size()];
         float yPos = grassConfiguration.verticalPlaceRange[0];
         if (range > 0) {
-            yPos = rand() * range + grassConfiguration.verticalPlaceRange[0];
+            yPos = disFloat(gen) * range + grassConfiguration.verticalPlaceRange[0];
         }
         BladeData blade;
         blade.offset = { disFloat(gen) * size, yPos * size };
@@ -21,12 +25,10 @@ GrassTile::GrassTile(int tileSize, Vector2 location, int amount, const std::vect
         blade.palette = grassAssets->blades[newBlade].averageColor;
         blades.push_back(blade);
 	}
-
     std::sort(blades.begin(), blades.end(), [](const BladeData& a, const BladeData& b) {
         return a.bladeId < b.bladeId;
         });
 
-    baseId = Cache::get().grassId++;
     UpdateRenderData(0);
 }
 
