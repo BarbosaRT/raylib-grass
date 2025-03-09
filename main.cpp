@@ -14,6 +14,7 @@
 ********************************************************************************************/
 
 #include <raylib.h>
+#include "sources/GrassManager.hpp"
 
 #define MAX_BUILDINGS   100
 
@@ -52,6 +53,11 @@ int main(void)
     camera.offset = { screenWidth / 2.0f, screenHeight / 2.0f };
     camera.rotation = 0.0f;
     camera.zoom = 1.0f;
+
+    GrassManager grassManager("assets/grass"); // Assuming your grass images are in assets/grass
+    grassManager.placeTile({ 0, 0 }, 50, { 0, 1, 2, 3, 4, 0, 1, 2, 3, 4 });  // Example tile
+    grassManager.placeTile({ 1, 0 }, 50, { 0, 1, 2, 3, 4, 0, 1, 2, 3, 4 });  // Example tile
+    grassManager.enableGroundShadows(); //use default shadows.
 
     SetTargetFPS(60);                   // Set our game to run at 60 frames-per-second
     //--------------------------------------------------------------------------------------

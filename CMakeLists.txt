@@ -75,4 +75,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
   set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /SAFESEH:NO")
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SAFESEH:NO")
 endif()
+
+# --- Copy the assets folder ---
+file(COPY assets DESTINATION ${CMAKE_BINARY_DIR})
 # TODO: Add tests and install targets if needed.
