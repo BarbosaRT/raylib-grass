@@ -33,7 +33,33 @@ GrassTile::GrassTile(int tileSize, Vector2 location, int amount, const std::vect
 }
 
 void GrassTile::ApplyForce(Vector2 position, float radius, float dropoff) {
-    for (auto& blade : blades) {
+    if (custom_blade_data.empty()) {
+        custom_blade_data = std::vector<BladeData>(blades.size());
+    }
+
+    for (size_t i = 0; i < blades.size(); ++i) {
+        BladeData& blade = blades[i];
+        Vector2 bladePos = { location.x + blade.offset.x, location.y + blade.offset.y };
+        float distance = Vector2Distance(bladePos, position);
+        float force = 0.0f;
+        float dir = (position.x > bladePos.x) ? 1.0f : -1.0f;
+
+        if (distance < radius) {
+            force = 1.0f;
+        }
+        else if (distance < radius + dropoff) {
+            float t = (distance - radius) / dropoff;
+            force = 1.0f - t;
+        }
+
+        if (custom_blade_data[i].rotation == 0.0f || std::abs(custom_blade_data[i].rotation - blade.rotation) <= std::abs(force) * 90)
+        {
+            custom_blade_data[i] = blade; //copy the blade
+            custom_blade_data[i].rotation += dir * force * 90;
+        }
+    }
+
+    /*for (auto& blade : blades) {
         Vector2 bladePos = { location.x + blade.offset.x, location.y + blade.offset.y };
         float distance = Vector2Distance(bladePos, position);
 
@@ -44,7 +70,7 @@ void GrassTile::ApplyForce(Vector2 position, float radius, float dropoff) {
             float t = (distance - radius) / dropoff;
             blade.rotation += 90 * (1 - t) * (position.x > bladePos.x ? 1 : -1);
         }
-    }
+    }*/
 }
 
 // Set a new master rotation and update render data.

@@ -78,4 +78,5 @@ endif()
 
 # --- Copy the assets folder ---
 file(COPY assets DESTINATION ${CMAKE_BINARY_DIR})
+
 # TODO: Add tests and install targets if needed.

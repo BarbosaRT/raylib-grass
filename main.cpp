@@ -63,7 +63,6 @@ int main(void) {
         Vector2 mousePos = GetMousePosition();
         // Convert mouse position to world coordinates
         Vector2 worldMousePos = GetScreenToWorld2D(mousePos, camera);
-
         // Camera movement (control the *target*)
         if (mousePos.x / screenWidth < 0.2f)  scroll.x -= cameraSpeed * dt;
         if (mousePos.x / screenWidth > 0.8f)  scroll.x += cameraSpeed * dt;
@@ -131,7 +130,7 @@ int main(void) {
         BeginMode2D(camera); // Essential for camera transformations
 
         // Draw grass (using world coordinates, handled by updateRender)
-        grassManager.updateRender(dt, { (float)displayWidth, (float)displayHeight }, { 0,0 }, rotFunction);
+        grassManager.updateRender(dt, { (float)displayWidth, (float)displayHeight }, {0, 0}, rotFunction);
 
         // Draw mouse circle (use *world* coordinates)
         DrawCircleV(worldMousePos, 10 * brushSize - (clicking ? 2 : 0),

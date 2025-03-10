@@ -77,17 +77,28 @@ void GrassManager::applyForce(Vector2 location, float radius, float dropoff) {
 
 void GrassManager::updateRender(float deltaTime, Vector2 screenSize, Vector2 offset, std::function<int(int, int)>* rotFunction)
 {
-	// Calculate the visible tile range
-	int visible_tile_range_x = static_cast<int>(screenSize.x / gc.tileSize) + 1;
-	int visible_tile_range_y = static_cast<int>(screenSize.y / gc.tileSize) + 1;
-	Vector2 base_pos = { offset.x / gc.tileSize, offset.y / gc.tileSize };
+	// Calculate visible rectangle in WORLD coordinates
+	Rectangle visibleRectWorld = {
+		offset.x - gc.padding, // Add padding to account for blades extending beyond tile edges
+		offset.y - gc.padding,
+		screenSize.x + 2 * gc.padding,
+		screenSize.y + 2 * gc.padding
+	};
 
-	std::vector<std::pair<int, int>> renderList;
-	for (int y = 0; y < visible_tile_range_y; ++y) {
-		for (int x = 0; x < visible_tile_range_x; ++x) {
-			std::pair<int, int> pos = { base_pos.x + x, base_pos.y + y };
-			if (grassTiles.find(pos) != grassTiles.end()) {
-				renderList.push_back(pos);
+
+	// Optimized tile iteration:
+	int startTileX = (int)((visibleRectWorld.x) / gc.tileSize);
+	int startTileY = (int)((visibleRectWorld.y) / gc.tileSize);
+	int endTileX = (int)((visibleRectWorld.x + visibleRectWorld.width) / gc.tileSize);
+	int endTileY = (int)((visibleRectWorld.y + visibleRectWorld.height) / gc.tileSize);
+
+	std::vector<std::pair<int, int>> renderList; //we will store the tiles to be rendered.
+
+	for (int y = startTileY; y <= endTileY; ++y) {
+		for (int x = startTileX; x <= endTileX; ++x) {
+			std::pair<int, int> pos = { x, y };
+			if (grassTiles.count(pos)) {
+				renderList.push_back(pos); // Only add if the tile exists
 			}
 		}
 	}
