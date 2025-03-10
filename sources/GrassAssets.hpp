@@ -8,6 +8,8 @@ class GrassAssets {
 public:
     std::vector<Blade> blades;
     int shadeAmount;
+    Shader burnShader;
+    int burningIntensityLoc;
     GrassAssets(const std::string& path, int shadeAmount);
     ~GrassAssets() {
         // Unload textures when done.
@@ -15,6 +17,7 @@ public:
         for (auto& blade : blades) {
             UnloadTexture(blade.texture);
         }
+        UnloadShader(burnShader);
     };
-    void renderBlade(int id, Vector2 location, int rotation, int scale, Color palette);
+    void renderBlade(int id, Vector2 location, int rotation, float scale, Color palette);
 };

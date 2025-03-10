@@ -1,9 +1,13 @@
 #include "GrassAssets.hpp"
 #include <string>
 #include <filesystem>
+#include <iostream>
 
 GrassAssets::GrassAssets(const std::string& path, int shadeAmount) : shadeAmount(shadeAmount) {
     // Iterate over all files in the given folder (e.g., "assets/grass")
+    burnShader = LoadShader(0, "assets/burning.fs");
+    burningIntensityLoc = GetShaderLocation(burnShader, "burningIntensity");
+
     for (const auto& entry : std::filesystem::directory_iterator(path)) {
         std::string filePath = entry.path().string();
         Texture2D tex = LoadTexture(filePath.c_str());
@@ -36,7 +40,7 @@ GrassAssets::GrassAssets(const std::string& path, int shadeAmount) : shadeAmount
     }
 }
 
-void GrassAssets::renderBlade(int id, Vector2 location, int rotation, int scale, Color palette)
+void GrassAssets::renderBlade(int id, Vector2 location, int rotation, float scale, Color palette)
 {
     if (id < 0 || id >= blades.size()) return;
     Texture2D tex = blades[id].texture;
@@ -47,15 +51,24 @@ void GrassAssets::renderBlade(int id, Vector2 location, int rotation, int scale,
     Vector2 origin = { width / 2, height / 2 };
 
     // Compute a tint based on rotation and the configured shade amount.
-    float alpha = shadeAmount * (fabs(rotation) / 90.0f);
-    Color tint = { 255, 255, 255, (unsigned char)alpha };
-
+    float alpha = (float)shadeAmount * (fabs(rotation) / 90.0f);
+    alpha = 255.0f-alpha; //Invert.
+    alpha = std::max(40.0f,alpha); //make sure it is never below 40
+    Color tint = { 255, 255, 255, alpha };
+    //TODO: OPTIMIZE IT
     // If the blade is burning (scale less than 1), modify tint using the blades palette.
-    if (scale < 1.0f && scale > 0.0f) {
-        tint.r = (unsigned char)fmin(255, palette.r * 1.8f * (6.0f / scale));
-        tint.g = (unsigned char)fmin(255, palette.g * (1.0f / scale));
-        tint.b = (unsigned char)fmin(255, palette.b * (1.0f / scale));
-    }
-    DrawTexturePro(tex, source, dest, origin, rotation, tint);
+    //if (scale < 1.0f && scale > 0.0f) {
+        //tint.r = fmin(255, palette.r * 1.8f * (6.0f / scale));
+        //tint.g = fmin(255, palette.g * (1.0f / scale));
+        //tint.b = fmin(255, palette.b * (1.0f / scale));
+        //std::cout << "Kalica\n";        
+        //BeginShaderMode(burnShader);
+        //SetShaderValue(burnShader, burningIntensityLoc, &scale, SHADER_UNIFORM_FLOAT);
+        //DrawTexturePro(tex, source, dest, origin, rotation, WHITE);
+        //EndShaderMode();
+    //}
+    //else {
+        DrawTexturePro(tex, source, dest, origin, rotation, tint);
+    //}
 }
 

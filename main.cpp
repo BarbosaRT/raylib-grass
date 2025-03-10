@@ -7,25 +7,24 @@
 
 int main(void) {
     // Initialization
-    //--------------------------------------------------------------------------------------
-    const int screenWidth = 600;  // Match Pygame example
+    const int screenWidth = 800;
     const int screenHeight = 600;
-    const int displayWidth = 300;
+    const int displayWidth = 400;
     const int displayHeight = 300;
 
-    SetConfigFlags(FLAG_WINDOW_RESIZABLE); // Good practice
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(screenWidth, screenHeight, "Grass Demo");
 
     // Camera setup
     Camera2D camera = { 0 };
-    camera.zoom = 2.0f; // Start zoomed in (to match display size). This is correct.
-    camera.offset = { screenWidth / 2.0f, screenHeight / 2.0f }; // Correct: Center of the *window*
-    // camera.target is initialized to {0,0} and will be updated in the loop
+    camera.zoom = 2.0f;
+    camera.offset = { displayWidth / 2, displayHeight / 2 };  // Centering correctly
+    camera.target = { 0, 0 };  // Initialized properly
 
     // Grass Manager initialization
-    GrassManager grassManager("assets/grass", 10, 100, 600, 5, new int[2] {0, 1}, 13); // Use dynamic array
-    grassManager.enableGroundShadows(4, 1, { 0, 0, 1, 255 }, { 1, 2 });
-
+    int tileSize = 16;
+    GrassManager grassManager("assets/grass", tileSize, 250, 600, 5, new int[2] {0, 1}, 69);
+    //grassManager.enableGroundShadows(4, 1, { 0, 0, 1, 255 }, { 1, 2 });
 
     // Initial grass placement
     std::random_device rd;
@@ -44,39 +43,35 @@ int main(void) {
 
     // Variables
     float t = 0.0f;
-    Vector2 scroll = { 0.0f, 0.0f }; // This represents the camera's *target* (world coordinates)
-    float cameraSpeed = 170.0f * 2.0f; // Adjust speed, multiplied by two because of the zoom.
+    Vector2 scroll = { 0.0f, 0.0f }; // Camera target in world coordinates
+    float cameraSpeed = 100.0f;
     bool clicking = false;
     float brushSize = 1.0f;
     bool burn = false;
 
-    SetTargetFPS(1000); // Match the demo
-    //--------------------------------------------------------------------------------------
+    SetTargetFPS(1000);
 
     // Main game loop
     while (!WindowShouldClose()) {
         float dt = GetFrameTime();
 
         // --- Input Handling ---
-
-        // Get *screen* mouse position (no scaling needed!)
         Vector2 mousePos = GetMousePosition();
-        // Convert mouse position to world coordinates
-        Vector2 worldMousePos = GetScreenToWorld2D(mousePos, camera);
-        // Camera movement (control the *target*)
-        if (mousePos.x / screenWidth < 0.2f)  scroll.x -= cameraSpeed * dt;
-        if (mousePos.x / screenWidth > 0.8f)  scroll.x += cameraSpeed * dt;
-        if (mousePos.y / screenHeight < 0.2f) scroll.y -= cameraSpeed * dt;
-        if (mousePos.y / screenHeight > 0.8f) scroll.y += cameraSpeed * dt;
+        Vector2 worldMousePos = GetScreenToWorld2D(mousePos, camera); // Correct world position
+
+        // Camera movement (use correct proportions)
+        if (mousePos.x / screenWidth < 0.2f)  scroll.x -= (cameraSpeed / camera.zoom) * dt;
+        if (mousePos.x / screenWidth > 0.8f)  scroll.x += (cameraSpeed / camera.zoom) * dt;
+        if (mousePos.y / screenHeight < 0.2f) scroll.y -= (cameraSpeed / camera.zoom) * dt;
+        if (mousePos.y / screenHeight > 0.8f) scroll.y += (cameraSpeed / camera.zoom) * dt;
 
         // Update camera target
-        camera.target = scroll;  // This is the *correct* way to control camera movement
+        camera.target = scroll;
 
-        // Apply force (use world coordinates)
+        // Apply force
         grassManager.applyForce(worldMousePos, 10 * brushSize, 25 * brushSize);
 
-
-        // Wind rotation function (using a lambda)
+        // Wind rotation function
         std::function<int(int, int)>* rotFunction = new std::function<int(int, int)>(
             [&](int x, int y) -> int {
                 return (int)(sin(t / 60.0f + x / 100.0f) * 15);
@@ -100,11 +95,11 @@ int main(void) {
         // --- Update ---
         t += dt * 100.0f;
 
-        // Place/burn tiles (use world coordinates)
+        // Place/burn tiles
         if (clicking) {
             int tileX = (int)(worldMousePos.x / grassManager.gc.tileSize);
             int tileY = (int)(worldMousePos.y / grassManager.gc.tileSize);
-            std::vector<int> bladeIds = { 0, 1, 2, 3, 4 };
+            std::vector<int> bladeIds = { 0, 1, 2, 3, 5 };
             if (!burn) {
                 grassManager.placeTile({ tileX, tileY }, (int)(dis(gen) * 12 * brushSize + 1), bladeIds);
                 if (brushSize == 1.0f) {
@@ -122,27 +117,25 @@ int main(void) {
             }
         }
 
-
         // --- Render ---
         BeginDrawing();
         ClearBackground({ 27, 66, 52, 255 });
 
-        BeginMode2D(camera); // Essential for camera transformations
+        BeginMode2D(camera);
 
-        // Draw grass (using world coordinates, handled by updateRender)
-        grassManager.updateRender(dt, { (float)displayWidth, (float)displayHeight }, {0, 0}, rotFunction);
-
-        // Draw mouse circle (use *world* coordinates)
+        // Draw grass (world coordinates)
+        grassManager.updateRender(dt, {displayWidth, displayHeight }, camera.target, rotFunction);
+        // Draw mouse circle (world coordinates)
         DrawCircleV(worldMousePos, 10 * brushSize - (clicking ? 2 : 0),
             Fade(WHITE, clicking ? 1.0f : 0.5f));
         if (clicking) {
             DrawCircleLinesV(worldMousePos, 10 * brushSize, WHITE);
         }
 
-        EndMode2D(); // Essential
-
+        EndMode2D();
         DrawFPS(10, 10);
         EndDrawing();
+
         delete rotFunction;
     }
 

@@ -1,5 +1,5 @@
 #include "GrassManager.hpp"
-
+#include <iostream>
 GrassManager::GrassManager(const std::string& grassPath, int tileSize, int shadeAmount, int stiffness, int maxUnique, const int verticalPlaceRange[2], int padding)
 {
 	gc.shadeAmount = 10;
@@ -79,19 +79,17 @@ void GrassManager::updateRender(float deltaTime, Vector2 screenSize, Vector2 off
 {
 	// Calculate visible rectangle in WORLD coordinates
 	Rectangle visibleRectWorld = {
-		offset.x - gc.padding, // Add padding to account for blades extending beyond tile edges
-		offset.y - gc.padding,
+		offset.x - screenSize.x / 2 + gc.padding,  // Center around camera target
+		offset.y - screenSize.y / 2 + gc.padding,
 		screenSize.x + 2 * gc.padding,
 		screenSize.y + 2 * gc.padding
 	};
-
 
 	// Optimized tile iteration:
 	int startTileX = (int)((visibleRectWorld.x) / gc.tileSize);
 	int startTileY = (int)((visibleRectWorld.y) / gc.tileSize);
 	int endTileX = (int)((visibleRectWorld.x + visibleRectWorld.width) / gc.tileSize);
 	int endTileY = (int)((visibleRectWorld.y + visibleRectWorld.height) / gc.tileSize);
-
 	std::vector<std::pair<int, int>> renderList; //we will store the tiles to be rendered.
 
 	for (int y = startTileY; y <= endTileY; ++y) {
@@ -104,13 +102,13 @@ void GrassManager::updateRender(float deltaTime, Vector2 screenSize, Vector2 off
 	}
 
 	// Render shadows (if enabled)
-	/*if (gc.groundShadow.radius > 0) {
+	if (gc.groundShadow.radius > 0) {
 		for (const auto& pos : renderList) {
 			GrassTile* tile = grassTiles[pos];
 			// Call a modified RenderShadow function
 			tile->RenderShadow({ offset.x - gc.groundShadow.shift.x, offset.y - gc.groundShadow.shift.y });
 		}
-	}*/
+	}
 
 	// Render grass tiles and handle burning
 	for (const auto& pos : renderList) {
@@ -137,7 +135,7 @@ void GrassManager::updateRender(float deltaTime, Vector2 screenSize, Vector2 off
 		}
 
 		if (markedForDeletion) {
-			//tile->blades.clear();
+			tile->blades.clear();
 			grassTiles.erase(pos);
 			delete tile;
 		}

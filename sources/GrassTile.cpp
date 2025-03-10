@@ -1,6 +1,7 @@
 #include "GrassTile.hpp"
 #include <random>
 #include <raymath.h>
+#include <iostream>
 GrassTile::GrassTile(int tileSize, Vector2 location, int amount, const std::vector<int>& grassOptions, GrassConfiguration gc, GrassAssets* grassAssets) {
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -42,7 +43,7 @@ void GrassTile::ApplyForce(Vector2 position, float radius, float dropoff) {
         Vector2 bladePos = { location.x + blade.offset.x, location.y + blade.offset.y };
         float distance = Vector2Distance(bladePos, position);
         float force = 0.0f;
-        float dir = (position.x > bladePos.x) ? 1.0f : -1.0f;
+        float dir = (position.x > bladePos.x) ? -1.0f : 1.0f;
 
         if (distance < radius) {
             force = 1.0f;
@@ -97,9 +98,10 @@ void GrassTile::Render(Vector2 offset)
     //Use blades, or custom_blade_data if it is not empty.
     const std::vector<BladeData>& bladesToRender = custom_blade_data.empty() ? blades : custom_blade_data;
 
+    //std::cout << burnLife / maxBurnLife << "\n";
     for (const auto& blade : bladesToRender) {
-        Vector2 bladePos = { location.x + blade.offset.x + grassConfiguration.padding - offset.x,
-                             location.y + blade.offset.y + grassConfiguration.padding - offset.y };
+        Vector2 bladePos = { location.x + blade.offset.x,
+                             location.y + blade.offset.y };
         ga->renderBlade(blade.bladeId, bladePos, blade.rotation + trueRotation, burnLife / maxBurnLife, blade.palette); //pass the correct scale.
     }
 }
