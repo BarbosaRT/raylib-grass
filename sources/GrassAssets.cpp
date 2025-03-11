@@ -5,9 +5,16 @@
 
 GrassAssets::GrassAssets(const std::string& path, int shadeAmount) : shadeAmount(shadeAmount) {
     // Iterate over all files in the given folder (e.g., "assets/grass")
-    burnShader = LoadShader(0, "assets/burning.fs");
+    burnShader = LoadShader(0, "assets/shaders/burning.fs");
     burningIntensityLoc = GetShaderLocation(burnShader, "burningIntensity");
+    //paletteLoc = GetShaderLocation(burnShader, "palette");
 
+    std::cout << "\n";
+    std::cout << "\n";
+    std::cout << "burningIntensityLoc: " << burningIntensityLoc << std::endl;
+    std::cout << "paletteLoc: " << paletteLoc << std::endl;
+    std::cout << "\n";
+    std::cout << "\n";
     for (const auto& entry : std::filesystem::directory_iterator(path)) {
         std::string filePath = entry.path().string();
         Texture2D tex = LoadTexture(filePath.c_str());
@@ -57,18 +64,44 @@ void GrassAssets::renderBlade(int id, Vector2 location, int rotation, float scal
     Color tint = { 255, 255, 255, alpha };
     //TODO: OPTIMIZE IT
     // If the blade is burning (scale less than 1), modify tint using the blades palette.
-    //if (scale < 1.0f && scale > 0.0f) {
-        //tint.r = fmin(255, palette.r * 1.8f * (6.0f / scale));
-        //tint.g = fmin(255, palette.g * (1.0f / scale));
-        //tint.b = fmin(255, palette.b * (1.0f / scale));
-        //std::cout << "Kalica\n";        
-        //BeginShaderMode(burnShader);
-        //SetShaderValue(burnShader, burningIntensityLoc, &scale, SHADER_UNIFORM_FLOAT);
-        //DrawTexturePro(tex, source, dest, origin, rotation, WHITE);
-        //EndShaderMode();
-    //}
-    //else {
+    /*if (scale < 1.0f && scale > 0.0f) {
+        tint.r = fmin(255, palette.r * 1.8f * (6.0f / scale));
+        tint.g = fmin(255, palette.g * (1.0f / scale));
+        tint.b = fmin(255, palette.b * (1.0f / scale));
+
+        Vector3 burning = {tint.r / 255, tint.g / 255, tint.b/ 255};     
+        BeginShaderMode(burnShader);
+        SetShaderValue(burnShader, burningIntensityLoc, &scale, SHADER_UNIFORM_FLOAT);
+        SetShaderValue(burnShader, paletteLoc, &burning, SHADER_UNIFORM_VEC3);
+
         DrawTexturePro(tex, source, dest, origin, rotation, tint);
-    //}
+        EndShaderMode();
+    }
+    else {
+        DrawTexturePro(tex, source, dest, origin, rotation, tint);
+    }*/
+
+    if (scale < 1.0f && scale > 0.0f) {
+    // Calculate normalized color components with adjusted multipliers
+    
+        tint.r = fmin(255, palette.r * 1.8f * (6.0f / scale));
+        tint.g = fmin(255, palette.g * (1.0f / scale));
+        tint.b = fmin(255, palette.b * (1.0f / scale));
+
+        Vector3 burning = {tint.r / 200, tint.g / 200, tint.b/ 200};   
+    
+        // Use burning intensity = 1 - scale
+        float burningIntensity = scale;
+        
+        BeginShaderMode(burnShader);
+        SetShaderValue(burnShader, burningIntensityLoc, &burningIntensity, SHADER_UNIFORM_FLOAT);
+        SetShaderValue(burnShader, paletteLoc, &burning, SHADER_UNIFORM_VEC3);
+
+        DrawTexturePro(tex, source, dest, origin, rotation, WHITE);
+        EndShaderMode();
+}
+else {
+    DrawTexturePro(tex, source, dest, origin, rotation, tint);
+}
 }
 

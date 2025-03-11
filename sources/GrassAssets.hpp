@@ -10,6 +10,7 @@ public:
     int shadeAmount;
     Shader burnShader;
     int burningIntensityLoc;
+    int paletteLoc;
     GrassAssets(const std::string& path, int shadeAmount);
     ~GrassAssets() {
         // Unload textures when done.

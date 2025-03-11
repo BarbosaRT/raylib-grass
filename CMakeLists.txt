@@ -1,8 +1,5 @@
-﻿# CMakeList.txt : CMake project for Raylib-Grass-Implementation, include source and define
-# project specific logic here.
-#
-cmake_minimum_required(VERSION 3.22)
-project ("Raylib-Grass-Implementation")
+﻿cmake_minimum_required(VERSION 3.22)
+project ("raylib-grass")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -41,7 +38,7 @@ add_git_dependency(
 )
 
 # Add source to this project's executable.
-add_executable (Raylib-Grass-Implementation "main.cpp"  "sources/GrassAssets.cpp" "sources/GrassTile.cpp" "sources/GrassManager.cpp" "sources/Utils.cpp")
+add_executable (raylib-grass "main.cpp"  "sources/GrassAssets.cpp" "sources/GrassTile.cpp" "sources/GrassManager.cpp" "sources/Utils.cpp")
 target_sources(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCES})
 target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_INCLUDE})
 
@@ -66,7 +63,7 @@ else()
 endif()
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
-  set_property(TARGET Raylib-Grass-Implementation PROPERTY CXX_STANDARD 20)
+  set_property(TARGET raylib-grass PROPERTY CXX_STANDARD 20)
 endif()
 
 # Ensure that hot-reload is enabled for VS
@@ -77,6 +74,10 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
 endif()
 
 # --- Copy the assets folder ---
-file(COPY assets DESTINATION ${CMAKE_BINARY_DIR})
+#file(COPY assets DESTINATION ${CMAKE_BINARY_DIR})
+add_custom_target(copy_assets ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets ${CMAKE_BINARY_DIR}/assets
+)
+add_dependencies(${PROJECT_NAME} copy_assets)
 
 # TODO: Add tests and install targets if needed.
