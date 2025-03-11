@@ -85,8 +85,11 @@ void GrassTile::RenderShadow(Vector2 offset)
     if (grassConfiguration.groundShadow.radius > 0)
     {
         for (const auto& blade : blades) {
-            Vector2 shadowPos = { location.x + blade.offset.x + grassConfiguration.padding - offset.x,
-                                      location.y + blade.offset.y + grassConfiguration.padding - offset.y };
+
+            Vector2 shadowPos = { location.x + blade.offset.x + offset.x,
+                                 location.y + blade.offset.y + offset.y };
+            //Vector2 shadowPos = { location.x + blade.offset.x + grassConfiguration.padding - offset.x,
+            //                          location.y + blade.offset.y + grassConfiguration.padding - offset.y };
             DrawCircle(shadowPos.x, shadowPos.y, grassConfiguration.groundShadow.radius,
                 Fade(grassConfiguration.groundShadow.color, (float)grassConfiguration.groundShadow.strength / 255.0f)); //strength is 0-100, Fade expects 0-1
         }

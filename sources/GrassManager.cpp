@@ -105,8 +105,7 @@ void GrassManager::updateRender(float deltaTime, Vector2 screenSize, Vector2 off
 	if (gc.groundShadow.radius > 0) {
 		for (const auto& pos : renderList) {
 			GrassTile* tile = grassTiles[pos];
-			// Call a modified RenderShadow function
-			tile->RenderShadow({ offset.x - gc.groundShadow.shift.x, offset.y - gc.groundShadow.shift.y });
+			tile->RenderShadow({ gc.groundShadow.shift.x, gc.groundShadow.shift.y });
 		}
 	}
 
@@ -129,7 +128,6 @@ void GrassManager::updateRender(float deltaTime, Vector2 screenSize, Vector2 off
 
 		// Apply the rotation function if provided
 		if (rotFunction) {
-			// Dereference the function pointer and call the function
 			float rotation = (*rotFunction)(tile->location.x, tile->location.y);
 			tile->SetRotation(rotation, deltaTime);
 		}

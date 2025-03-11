@@ -24,7 +24,8 @@ int main(void) {
     // Grass Manager initialization
     int tileSize = 16;
     GrassManager grassManager("assets/grass", tileSize, 250, 600, 5, new int[2] {0, 1}, 69);
-    grassManager.enableGroundShadows(4, 0, { 0, 0, 1, 255 }, { 1, 2 });
+    //grassManager.enableGroundShadows(10, 5, { 0, 0, 1, 255 }, { 1, 2 });
+    grassManager.enableGroundShadows(0, 0, { 0, 0, 1, 255 }, { 1, 2 }); // Shadows Disabled
 
     // Initial grass placement
     std::random_device rd;
