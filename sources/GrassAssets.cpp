@@ -62,39 +62,18 @@ void GrassAssets::renderBlade(int id, Vector2 location, int rotation, float scal
     alpha = 255.0f-alpha; //Invert.
     alpha = std::max(40.0f,alpha); //make sure it is never below 40
     Color tint = { 255, 255, 255, alpha };
-    //TODO: OPTIMIZE IT
-    // If the blade is burning (scale less than 1), modify tint using the blades palette.
-    /*if (scale < 1.0f && scale > 0.0f) {
-        tint.r = fmin(255, palette.r * 1.8f * (6.0f / scale));
-        tint.g = fmin(255, palette.g * (1.0f / scale));
-        tint.b = fmin(255, palette.b * (1.0f / scale));
-
-        Vector3 burning = {tint.r / 255, tint.g / 255, tint.b/ 255};     
-        BeginShaderMode(burnShader);
-        SetShaderValue(burnShader, burningIntensityLoc, &scale, SHADER_UNIFORM_FLOAT);
-        SetShaderValue(burnShader, paletteLoc, &burning, SHADER_UNIFORM_VEC3);
-
-        DrawTexturePro(tex, source, dest, origin, rotation, tint);
-        EndShaderMode();
-    }
-    else {
-        DrawTexturePro(tex, source, dest, origin, rotation, tint);
-    }*/
-
     if (scale < 1.0f && scale > 0.0f) {
         // Calculate normalized color components with adjusted multipliers
-        tint.r = fmin(255, (float)palette.r * 1.8f * (6.0f / (1 - scale)));
-        tint.g = fmin(255, (float)palette.g * (1.0f / (scale)));
-        tint.b = fmin(255, (float)palette.b * (1.0f / scale));
+        Vector3 palNorm = {
+        (float)palette.r / 255.0f,
+        (float)palette.g / 255.0f,
+        (float)palette.b / 255.0f
+        };
 
-        Vector3 burning = {tint.r / 255, tint.g / 255, 0/ 255};   
-        //Vector3 burning = { 1.0f, 0.0f, 0.0f };
-        // Use burning intensity = 1 - scale
-        float burningIntensity = scale;
-        
         BeginShaderMode(burnShader);
-        SetShaderValue(burnShader, burningIntensityLoc, &burningIntensity, SHADER_UNIFORM_FLOAT);
-        SetShaderValue(burnShader, paletteLoc, &burning, SHADER_UNIFORM_VEC3);
+        SetShaderValue(burnShader, GetShaderLocation(burnShader, "scale"), &scale, SHADER_UNIFORM_FLOAT);
+        SetShaderValue(burnShader, GetShaderLocation(burnShader, "palette"), &palNorm, SHADER_UNIFORM_VEC3);
+
 
         DrawTexturePro(tex, source, dest, origin, rotation, WHITE);
         EndShaderMode();

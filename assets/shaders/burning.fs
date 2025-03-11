@@ -1,24 +1,26 @@
 #version 330
 
 in vec2 fragTexCoord;
-in vec4 fragColor;
-uniform sampler2D texture0;
-uniform float burningIntensity; // Value between 0.0 and 1.0
-uniform vec3 palette;           // Pre-computed burning color
+uniform sampler2D texture0;   // The blade texture
+uniform float scale;          // Blade's scale, e.g. 0.0..1.0
+uniform vec3 palette;         // The blade's average color, normalized to [0..1]
 
 out vec4 finalColor;
 
 void main() {
-    vec4 texColor = texture(texture0, fragTexCoord);
-    
-    // Use the provided palette as the burn color
-    vec3 burnColor = palette;
-    //vec3 burnColor = vec3(palette.x, 0.0, 0.0);
-    
-    // Mix original texture color and burnColor based on burningIntensity
-    //vec3 mixedColor = mix(texColor.rgb, burnColor, burningIntensity);
-    vec3 mixedColor = burnColor;
+    // Sample the source color from the texture
+    vec4 srcColor = texture(texture0, fragTexCoord);
 
-    finalColor = vec4(mixedColor, texColor.a);
-    //finalColor = vec4(1.0, 0.0, 0.0, texColor.a);
+    if (srcColor.a < 0.05) {
+        discard;
+    }
+    
+    float safeScale = max(scale, 0.001);  // Avoid division by zero
+
+    float r = clamp(palette.r * 1.8 * (6.0 / safeScale), 0.0, 1.0);
+    float g = clamp(palette.g * (0.8 / safeScale),      0.0, 1.0);
+    float b = clamp(palette.b * (1.0 / safeScale),      0.0, 1.0);
+
+    // Keep the original alpha
+    finalColor = vec4(r, g, b, srcColor.a);
 }
