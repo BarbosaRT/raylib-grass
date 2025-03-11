@@ -13,11 +13,12 @@ void main() {
     
     // Use the provided palette as the burn color
     vec3 burnColor = palette;
-    //vec3 burnColor = vec3(1.0, 0.0, 0.0);
+    //vec3 burnColor = vec3(palette.x, 0.0, 0.0);
     
     // Mix original texture color and burnColor based on burningIntensity
-    vec3 mixedColor = mix(texColor.rgb, burnColor, burningIntensity);
-    
+    //vec3 mixedColor = mix(texColor.rgb, burnColor, burningIntensity);
+    vec3 mixedColor = burnColor;
+
     finalColor = vec4(mixedColor, texColor.a);
-    //finalColor = vec4(1.0, 0.0, 0.0, 1.0);
+    //finalColor = vec4(1.0, 0.0, 0.0, texColor.a);
 }

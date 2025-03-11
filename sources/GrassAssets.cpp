@@ -7,7 +7,7 @@ GrassAssets::GrassAssets(const std::string& path, int shadeAmount) : shadeAmount
     // Iterate over all files in the given folder (e.g., "assets/grass")
     burnShader = LoadShader(0, "assets/shaders/burning.fs");
     burningIntensityLoc = GetShaderLocation(burnShader, "burningIntensity");
-    //paletteLoc = GetShaderLocation(burnShader, "palette");
+    paletteLoc = GetShaderLocation(burnShader, "palette");
 
     std::cout << "\n";
     std::cout << "\n";
@@ -82,14 +82,13 @@ void GrassAssets::renderBlade(int id, Vector2 location, int rotation, float scal
     }*/
 
     if (scale < 1.0f && scale > 0.0f) {
-    // Calculate normalized color components with adjusted multipliers
-    
-        tint.r = fmin(255, palette.r * 1.8f * (6.0f / scale));
-        tint.g = fmin(255, palette.g * (1.0f / scale));
-        tint.b = fmin(255, palette.b * (1.0f / scale));
+        // Calculate normalized color components with adjusted multipliers
+        tint.r = fmin(255, (float)palette.r * 1.8f * (6.0f / (1 - scale)));
+        tint.g = fmin(255, (float)palette.g * (1.0f / (scale)));
+        tint.b = fmin(255, (float)palette.b * (1.0f / scale));
 
-        Vector3 burning = {tint.r / 200, tint.g / 200, tint.b/ 200};   
-    
+        Vector3 burning = {tint.r / 255, tint.g / 255, 0/ 255};   
+        //Vector3 burning = { 1.0f, 0.0f, 0.0f };
         // Use burning intensity = 1 - scale
         float burningIntensity = scale;
         
@@ -99,9 +98,9 @@ void GrassAssets::renderBlade(int id, Vector2 location, int rotation, float scal
 
         DrawTexturePro(tex, source, dest, origin, rotation, WHITE);
         EndShaderMode();
-}
-else {
-    DrawTexturePro(tex, source, dest, origin, rotation, tint);
-}
+    }
+    else {
+        DrawTexturePro(tex, source, dest, origin, rotation, tint);
+    }
 }
 
