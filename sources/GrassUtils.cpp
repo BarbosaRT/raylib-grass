@@ -1,4 +1,4 @@
-#include "Utils.hpp"
+#include "GrassUtils.hpp"
 float normalize(float current, float rate, float target) {
     float output = current;
     if (current > target + rate) output -= rate;

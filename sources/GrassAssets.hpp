@@ -2,7 +2,7 @@
 #include <vector>
 #include <string>
 #include <raylib.h>
-#include "Utils.hpp"
+#include "GrassUtils.hpp"
 
 class GrassAssets {
 public:

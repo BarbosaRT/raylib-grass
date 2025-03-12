@@ -38,7 +38,7 @@ add_git_dependency(
 )
 
 # Add source to this project's executable.
-add_executable (raylib-grass "main.cpp"  "sources/GrassAssets.cpp" "sources/GrassTile.cpp" "sources/GrassManager.cpp" "sources/Utils.cpp")
+add_executable (raylib-grass "main.cpp"  "sources/GrassAssets.cpp" "sources/GrassTile.cpp" "sources/GrassManager.cpp" "sources/GrassUtils.cpp")
 target_sources(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCES})
 target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_INCLUDE})
 

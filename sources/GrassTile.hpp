@@ -1,7 +1,7 @@
 #pragma once
 #include <raylib.h>
 #include <vector>
-#include "Utils.hpp"
+#include "GrassUtils.hpp"
 #include "GrassAssets.hpp"
 class GrassTile {
 public:
