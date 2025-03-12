@@ -7,23 +7,23 @@
 
 int main(void) {
     // Initialization
-    const int screenWidth = 800;
-    const int screenHeight = 600;
-    const int displayWidth = 400;
-    const int displayHeight = 300;
+    const int screenWidth = 1280;
+    const int screenHeight = 720;
+    const int displayWidth = 640;
+    const int displayHeight = 360;
 
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(screenWidth, screenHeight, "Grass Demo");
 
     // Camera setup
     Camera2D camera = { 0 };
-    camera.zoom = 2.0f;
-    camera.offset = { displayWidth / 2, displayHeight / 2 };  // Centering correctly
+    camera.zoom = screenWidth / displayWidth;
+    camera.offset = { displayWidth / 2, displayHeight / 2};  // Centering correctly
     camera.target = { 0, 0 };  // Initialized properly
 
     // Grass Manager initialization
-    int tileSize = 16;
-    GrassManager grassManager("assets/grass", tileSize, 250, 600, 5, new int[2] {0, 1}, 69);
+    int tileSize = 10;
+    GrassManager grassManager("assets/grass", tileSize, 69, 600, 5, new int[2] {0, 1}, 69);
     //grassManager.enableGroundShadows(10, 5, { 0, 0, 1, 255 }, { 1, 2 });
     grassManager.enableGroundShadows(0, 0, { 0, 0, 1, 255 }, { 1, 2 }); // Shadows Disabled
 
@@ -134,7 +134,7 @@ int main(void) {
         }
 
         EndMode2D();
-        DrawFPS(10, 10);
+        //DrawFPS(10, 10);
         EndDrawing();
 
         delete rotFunction;

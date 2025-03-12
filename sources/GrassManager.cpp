@@ -86,6 +86,8 @@ void GrassManager::updateRender(float deltaTime, Vector2 screenSize, Vector2 off
 	};
 
 	// Optimized tile iteration:
+	// DrawRectangleRec(visibleRectWorld, RED); // DEBUG
+
 	int startTileX = (int)((visibleRectWorld.x) / gc.tileSize);
 	int startTileY = (int)((visibleRectWorld.y) / gc.tileSize);
 	int endTileX = (int)((visibleRectWorld.x + visibleRectWorld.width) / gc.tileSize);

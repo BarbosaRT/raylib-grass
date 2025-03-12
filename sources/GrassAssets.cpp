@@ -57,13 +57,20 @@ void GrassAssets::renderBlade(int id, Vector2 location, int rotation, float scal
     Rectangle dest = { location.x - width / 2, location.y - height / 2, width, height };
     Vector2 origin = { width / 2, height / 2 };
 
-    // Compute a tint based on rotation and the configured shade amount.
-    float alpha = (float)shadeAmount * (fabs(rotation) / 90.0f);
-    alpha = 255.0f-alpha; //Invert.
-    alpha = std::max(40.0f,alpha); //make sure it is never below 40
-    Color tint = { 255, 255, 255, alpha };
+    float shadeFactor = (float)shadeAmount * (fabs(rotation) / 90.0f);
+    shadeFactor = 255.0f - shadeFactor;
+    shadeFactor = std::max(40.0f, shadeFactor);
+
+    float darkeningFactor = shadeFactor / 255.0f; 
+
+    Color tint = { 
+        (255 * darkeningFactor), 
+        (255 * darkeningFactor), 
+        (255 * darkeningFactor), 
+        255 // Keep alpha fully opaque
+    };
+    //Color tint = { 255, 255, 255, shadeFactor };
     if (scale < 1.0f && scale > 0.0f) {
-        // Calculate normalized color components with adjusted multipliers
         Vector3 palNorm = {
         (float)palette.r / 255.0f,
         (float)palette.g / 255.0f,
